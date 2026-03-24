@@ -1,5 +1,20 @@
 import { useState } from 'react';
 import './App.css';
+import lpHero from './assets/lp-diverse/hero.jpg';
+import lpWhy from './assets/lp-diverse/why.jpg';
+import lpCta from './assets/lp-diverse/cta.jpg';
+import lpFeatTraining from './assets/lp-diverse/training.jpg';
+import lpFeatProgress from './assets/lp-diverse/progress.jpg';
+import lpFeatActivities from './assets/lp-diverse/activities.jpg';
+import lpFeatGuides from './assets/lp-diverse/guides.jpg';
+import lpFeatMessaging from './assets/lp-diverse/messaging.jpg';
+import lpFeatReports from './assets/lp-diverse/reports.jpg';
+import lpRoleTeacher from './assets/lp-diverse/role-teacher.jpg';
+import lpRoleParent from './assets/lp-diverse/role-parent.jpg';
+import lpRoleChild from './assets/lp-diverse/role-child.jpg';
+import lpRoleAdmin from './assets/lp-diverse/role-admin.jpg';
+import lpDashboardStrip from './assets/lp-diverse/dashboard.jpg';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const Icon = ({ name, size = 20, color = 'currentColor' }) => {
   const icons = {
@@ -36,7 +51,24 @@ const Icon = ({ name, size = 20, color = 'currentColor' }) => {
   );
 };
 
-// Inline SVG for landing page icons (same style)
+// Landing photos: bundled JPEGs in src/assets/lp-diverse (Pexels — replace with your own)
+const LP_PHOTOS = {
+  hero: lpHero,
+  why: lpWhy,
+  cta: lpCta,
+  training: lpFeatTraining,
+  progress: lpFeatProgress,
+  activities: lpFeatActivities,
+  guides: lpFeatGuides,
+  messaging: lpFeatMessaging,
+  reports: lpFeatReports,
+  roleTeacher: lpRoleTeacher,
+  roleParent: lpRoleParent,
+  roleChild: lpRoleChild,
+  roleAdmin: lpRoleAdmin,
+  dashboardCard: lpDashboardStrip,
+};
+
 const LI = ({ d, size = 22 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -89,24 +121,27 @@ function App() {
 ───────────────────────────────────────── */
 function LandingPage({ go }) {
   const features = [
-    { d: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>, title: 'Teacher Training', desc: 'Six professional development modules on autism inclusion, sensory strategies, and classroom communication.' },
-    { d: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>, title: 'Child Progress', desc: "Track each child's development across communication, social skills, and learning over time." },
-    { d: <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>, title: 'Structured Activities', desc: 'Curated learning activities tailored for autistic children, designed for both school and home.' },
-    { d: <><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>, title: 'Parent Guides', desc: "Practical resources and video tutorials to help parents support their child's growth at home." },
-    { d: <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>, title: 'Direct Messaging', desc: 'Secure communication between teachers and parents — no third-party apps needed.' },
-    { d: <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>, title: 'School Reports', desc: 'Administrators can monitor usage, training completion, and generate school-wide reports.' },
+    { photo: LP_PHOTOS.training, photoAlt: 'Diverse children learning together in a classroom', d: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>, title: 'Teacher Training', desc: 'Six professional development modules on autism inclusion, sensory strategies, and classroom communication.' },
+    { photo: LP_PHOTOS.progress, photoAlt: 'Mixed group of students participating in a school lesson', d: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>, title: 'Child Progress', desc: "Track each child's development across communication, social skills, and learning over time." },
+    { photo: LP_PHOTOS.activities, photoAlt: 'Teen students of different backgrounds studying together', d: <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>, title: 'Structured Activities', desc: 'Curated learning activities tailored for autistic children, designed for both school and home.' },
+    { photo: LP_PHOTOS.guides, photoAlt: 'Parent reading with a child at home', d: <><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>, title: 'Parent Guides', desc: "Practical resources and video tutorials to help parents support their child's growth at home." },
+    { photo: LP_PHOTOS.messaging, photoAlt: 'Colleagues collaborating in a meeting', d: <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>, title: 'Direct Messaging', desc: 'Secure communication between teachers and parents — no third-party apps needed.' },
+    { photo: LP_PHOTOS.reports, photoAlt: 'Students studying and working in a library', d: <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>, title: 'School Reports', desc: 'Administrators can monitor usage, training completion, and generate school-wide reports.' },
   ];
 
   const roles = [
-    { label: 'Teachers', d: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>, desc: 'Access training modules, monitor student progress, and communicate with parents.' },
-    { label: 'Parents', d: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></>, desc: "See your child's activities and progress, and stay in touch with their teacher." },
-    { label: 'Children', d: <><circle cx="12" cy="6" r="3"/><path d="M9 12h6l1 8H8l1-8z"/></>, desc: 'Complete fun activities and earn points in a safe, simple learning space.' },
-    { label: 'School Admins', d: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>, desc: 'Manage all accounts, view platform-wide data, and generate school reports.' },
+    { photo: LP_PHOTOS.roleTeacher, photoAlt: 'Teacher with a diverse group of young students', label: 'Teachers', d: <><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></>, desc: 'Access training modules, monitor student progress, and communicate with parents.' },
+    { photo: LP_PHOTOS.roleParent, photoAlt: 'Family spending time together at home', label: 'Parents', d: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></>, desc: "See your child's activities and progress, and stay in touch with their teacher." },
+    { photo: LP_PHOTOS.roleChild, photoAlt: 'Children painting and learning together', label: 'Children', d: <><circle cx="12" cy="6" r="3"/><path d="M9 12h6l1 8H8l1-8z"/></>, desc: 'Complete fun activities and earn points in a safe, simple learning space.' },
+    { photo: LP_PHOTOS.roleAdmin, photoAlt: 'Team planning in an office', label: 'School Admins', d: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>, desc: 'Manage all accounts, view platform-wide data, and generate school reports.' },
   ];
+
+  const heroStyle = { '--lp-hero-photo': `url(${LP_PHOTOS.hero})` };
+  const whyStyle = { '--lp-why-photo': `url(${LP_PHOTOS.why})` };
+  const ctaStyle = { '--lp-cta-photo': `url(${LP_PHOTOS.cta})` };
 
   return (
     <div>
-      {/* NAV */}
       <nav className="nav">
         <div className="nav-logo">InkluKids</div>
         <div className="nav-right">
@@ -115,8 +150,7 @@ function LandingPage({ go }) {
         </div>
       </nav>
 
-      {/* HERO */}
-      <div className="lp-hero">
+      <div className="lp-hero lp-hero-creative" style={heroStyle}>
         <div className="lp-hero-text">
           <span className="lp-tag">Autism Inclusion · Rwanda</span>
           <h1>
@@ -129,12 +163,11 @@ function LandingPage({ go }) {
             and children a place to learn and grow — all in one platform.
           </p>
           <div className="lp-hero-btns">
-            <button className="lp-btn-primary" onClick={() => go('register')}>Create Free Account</button>
-            <button className="lp-btn-secondary" onClick={() => go('login')}>Sign In</button>
+            <button type="button" className="lp-btn-primary lp-btn-pill" onClick={() => go('register')}>Create Free Account</button>
+            <button type="button" className="lp-btn-secondary lp-btn-pill-outline" onClick={() => go('login')}>Sign In</button>
           </div>
         </div>
 
-        {/* Dashboard preview panel */}
         <div className="lp-hero-visual">
           <div className="lp-dashboard-preview">
             <div className="ldp-header">
@@ -143,6 +176,17 @@ function LandingPage({ go }) {
                 <div className="ldp-dot active" />
                 <span className="ldp-user-name">Ms. Uwase</span>
               </div>
+            </div>
+            <div className="ldp-module-banner">
+              <img
+                className="ldp-module-banner-img"
+                src={LP_PHOTOS.dashboardCard}
+                alt="Diverse group of children learning together in a classroom"
+                width={360}
+                height={120}
+                decoding="async"
+              />
+              <div className="ldp-module-banner-shade" />
             </div>
             <div className="ldp-body">
               <div className="ldp-label">Training progress</div>
@@ -164,14 +208,13 @@ function LandingPage({ go }) {
               </div>
               <div className="ldp-divider" />
               <div className="ldp-next">Next: Visual Communication strategies</div>
-              <button className="ldp-resume">Resume Module 3</button>
+              <button type="button" className="ldp-resume">Resume Module 3</button>
             </div>
           </div>
           <div className="lp-preview-shadow" />
         </div>
       </div>
 
-      {/* NUMBERS BAR */}
       <div className="lp-numbers">
         {[['500+', 'Teachers trained'], ['1,200+', 'Children supported'], ['80+', 'Schools enrolled'], ['6', 'Training modules']].map(([n, l]) => (
           <div className="lp-num-item" key={n}>
@@ -181,16 +224,21 @@ function LandingPage({ go }) {
         ))}
       </div>
 
-      {/* FEATURES */}
       <section className="lp-features">
         <div className="lp-section-head">
           <div className="lp-eyebrow">WHAT YOU GET</div>
           <h2>Everything in one place</h2>
-          <p>A complete platform built around the needs of Rwanda's inclusive education community.</p>
+          <p>A complete platform built around the needs of Rwanda&apos;s inclusive education community.</p>
         </div>
         <div className="lp-feat-grid">
           {features.map((f, i) => (
             <div className="lp-feat" key={i}>
+              <div
+                className="lp-feat-photo"
+                style={{ backgroundImage: `url(${f.photo})` }}
+                role="img"
+                aria-label={f.photoAlt}
+              />
               <div className="lp-feat-icon"><LI d={f.d} /></div>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
@@ -199,11 +247,10 @@ function LandingPage({ go }) {
         </div>
       </section>
 
-      {/* WHY / TESTIMONIALS */}
-      <div className="lp-why">
+      <div className="lp-why lp-why-creative" style={whyStyle}>
         <div className="lp-why-left">
           <div className="lp-eyebrow">WHY INKLUKIDS</div>
-          <h2>Built for Rwanda's classrooms</h2>
+          <h2>Built for Rwanda&apos;s classrooms</h2>
           <p>Most inclusive education tools are designed for the West. InkluKids is built with Rwandan teachers, families, and schools at the centre.</p>
           <ul className="lp-why-list">
             {[
@@ -230,7 +277,7 @@ function LandingPage({ go }) {
             { q: 'I finally understand how to support my son at home. The activities fit perfectly into our daily routine.', who: 'Parent', loc: 'Musanze', initial: 'H' },
           ].map((t, i) => (
             <div className="lp-testimonial" key={i}>
-              <span className="lp-quote-mark">"</span>
+              <span className="lp-quote-mark">&ldquo;</span>
               <p>{t.q}</p>
               <footer>
                 <div className="lp-t-av">{t.initial}</div>
@@ -244,36 +291,39 @@ function LandingPage({ go }) {
         </div>
       </div>
 
-      {/* ROLES */}
       <section className="lp-roles">
         <div className="lp-section-head">
-          <div className="lp-eyebrow">WHO IT'S FOR</div>
+          <div className="lp-eyebrow">WHO IT&apos;S FOR</div>
           <h2>One platform, four roles</h2>
           <p>Each user type gets a tailored dashboard designed for how they use the platform.</p>
         </div>
         <div className="lp-roles-grid">
           {roles.map((r, i) => (
-            <div className="lp-role-card" key={i} onClick={() => go('register')}>
+            <div className="lp-role-card" key={i} onClick={() => go('register')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && go('register')}>
+              <div
+                className="lp-role-photo"
+                style={{ backgroundImage: `url(${r.photo})` }}
+                role="img"
+                aria-label={r.photoAlt}
+              />
               <div className="lp-role-icon"><LI d={r.d} size={20} /></div>
               <h3>{r.label}</h3>
               <p>{r.desc}</p>
-              <button className="lp-role-btn">Get started</button>
+              <button type="button" className="lp-role-btn">Get started</button>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="lp-cta">
+      <section className="lp-cta lp-cta-creative" style={ctaStyle}>
         <h2>Ready to build a more inclusive classroom?</h2>
         <p>Join hundreds of Rwandan educators and families — free to get started.</p>
         <div className="lp-cta-btns">
-          <button className="lp-cta-main" onClick={() => go('register')}>Create your free account</button>
-          <button className="lp-cta-ghost" onClick={() => go('login')}>Sign In</button>
+          <button type="button" className="lp-cta-main lp-btn-pill" onClick={() => go('register')}>Create your free account</button>
+          <button type="button" className="lp-cta-ghost lp-btn-pill-outline-light" onClick={() => go('login')}>Sign In</button>
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">InkluKids</div>
@@ -498,12 +548,22 @@ function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRe
         <header className="topbar">
           <div className="topbar-title">{navItems.find(n => n.id === activeTab)?.label}</div>
           <div className="topbar-right">
+            <div className="topbar-search">
+              <input placeholder="Search modules, resources, messages..." />
+            </div>
             <div className="notif-wrap">
               <button className="icon-btn" onClick={() => setShowNotif(p => !p)}>
                 <Icon name="bell" size={19} />
                 {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
               </button>
               {showNotif && <NotifPanel notifications={notifications} markRead={markRead} markAllRead={markAllRead} onClose={() => setShowNotif(false)} />}
+            </div>
+            <div className="topbar-user">
+              <div className="topbar-user-av">{user?.name?.charAt(0)}</div>
+              <div>
+                <div className="topbar-user-name">{user?.name}</div>
+                <div className="topbar-user-role">{user?.role === 'admin' ? 'School Admin' : user?.role}</div>
+              </div>
             </div>
           </div>
         </header>
@@ -536,12 +596,12 @@ const Badge = ({ label, type = 'blue' }) => <span className={`badge ${type}`}>{l
 function TeacherDashboard({ user, onLogout, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const nav = [
-    { id: 'home', label: 'Overview', icon: 'home' },
-    { id: 'training', label: 'Training', icon: 'graduation' },
-    { id: 'students', label: 'Students', icon: 'users' },
+    { id: 'home', label: 'Dashboard', icon: 'home' },
+    { id: 'training', label: 'Training Modules', icon: 'graduation' },
+    { id: 'students', label: 'Progress Tracking', icon: 'chart' },
     { id: 'resources', label: 'Resources', icon: 'book' },
     { id: 'messages', label: 'Messages', icon: 'message' },
-    { id: 'feedback', label: 'Feedback', icon: 'star' },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
   return (
     <Shell user={user} onLogout={onLogout} {...notifProps} navItems={nav} activeTab={tab} setActiveTab={setTab}>
@@ -550,7 +610,7 @@ function TeacherDashboard({ user, onLogout, ...notifProps }) {
       {tab === 'students' && <StudentsTab />}
       {tab === 'resources' && <ResourcesTab />}
       {tab === 'messages' && <MessagesTab />}
-      {tab === 'feedback' && <FeedbackTab />}
+      {tab === 'settings' && <SettingsWorkspace user={user} />}
     </Shell>
   );
 }
@@ -605,35 +665,48 @@ function TeacherHome({ user }) {
 }
 
 function TrainingTab() {
+  const [filter, setFilter] = useState('All');
+  const [selectedModule, setSelectedModule] = useState(null);
   const modules = [
-    { title: 'Understanding Autism', desc: 'Foundations of autism and inclusive education.', pct: 100, status: 'Completed' },
-    { title: 'Inclusive Classroom Setup', desc: 'Design a classroom that works for every learner.', pct: 100, status: 'Completed' },
-    { title: 'Visual Communication', desc: 'Using visual cues, schedules, and picture cards.', pct: 60, status: 'In Progress' },
-    { title: 'Sensory Strategies', desc: 'Managing sensory sensitivities in the classroom.', pct: 0, status: 'Not Started' },
-    { title: 'Behavior Support', desc: 'Positive behavior strategies for autistic children.', pct: 0, status: 'Not Started' },
-    { title: 'Parent Collaboration', desc: 'Building strong home-school connections.', pct: 0, status: 'Not Started' },
+    { title: 'Understanding Autism', desc: 'Foundations of autism and inclusive education.', pct: 100, status: 'Completed', duration: '45 mins' },
+    { title: 'Inclusive Classroom Setup', desc: 'Design a classroom that works for every learner.', pct: 100, status: 'Completed', duration: '40 mins' },
+    { title: 'Visual Communication', desc: 'Using visual cues, schedules, and picture cards.', pct: 60, status: 'In Progress', duration: '35 mins' },
+    { title: 'Sensory Strategies', desc: 'Managing sensory sensitivities in the classroom.', pct: 0, status: 'Not Started', duration: '30 mins' },
+    { title: 'Behavior Support', desc: 'Positive behavior strategies for autistic children.', pct: 0, status: 'Not Started', duration: '50 mins' },
+    { title: 'Parent Collaboration', desc: 'Building strong home-school connections.', pct: 0, status: 'Not Started', duration: '25 mins' },
   ];
+  const visible = filter === 'All' ? modules : modules.filter(m => m.status === filter);
   return (
     <div className="page">
       <div className="page-head"><h1>Training Modules</h1><p>Complete all 6 modules to earn your inclusive education certificate.</p></div>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="prog-summary"><span>2 of 6 modules completed</span><strong>33%</strong></div>
-        <ProgressBar value={33} />
+      <div className="filter-row">
+        {['All', 'In Progress', 'Completed'].map(tab => (
+          <button key={tab} className={`filter-chip ${filter === tab ? 'active' : ''}`} onClick={() => setFilter(tab)}>{tab}</button>
+        ))}
       </div>
-      {modules.map((m, i) => (
-        <div className="module-row" key={i}>
-          <div className="mod-num">{i + 1}</div>
-          <div className="mod-body">
-            <div className="mod-title">{m.title}</div>
-            <div className="mod-desc">{m.desc}</div>
-            {m.pct > 0 && <ProgressBar value={m.pct} />}
+      <div className="module-grid">
+        {visible.map((m, i) => (
+          <div className="res-card module-card" key={i}>
+            <div className="res-top"><Badge label={m.status} type={m.status === 'Completed' ? 'green' : m.status === 'In Progress' ? 'blue' : 'gray'} /><span className="res-cat">{m.duration}</span></div>
+            <div className="res-title">{m.title}</div>
+            <div className="res-desc">{m.desc}</div>
+            <ProgressBar value={m.pct} />
+            <button className="btn-sm" onClick={() => setSelectedModule(m)}>{m.pct > 0 ? 'Continue' : 'Start'}</button>
           </div>
-          <div className="mod-right">
-            <Badge label={m.status} type={m.status === 'Completed' ? 'green' : m.status === 'In Progress' ? 'blue' : 'gray'} />
-            <button className="btn-sm">{m.status === 'Completed' ? 'Review' : m.status === 'In Progress' ? 'Resume' : 'Start'}</button>
-          </div>
+        ))}
+      </div>
+      {selectedModule && (
+        <div className="card" style={{ marginTop: 18 }}>
+          <div className="card-title">{selectedModule.title} - Lesson Detail</div>
+          <div className="video-placeholder">Video embed placeholder</div>
+          <ol className="lesson-steps">
+            <li>Watch introduction video</li>
+            <li>Read key guidance points</li>
+            <li>Apply one strategy in class</li>
+            <li>Mark lesson step as complete</li>
+          </ol>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -664,24 +737,35 @@ function StudentsTab() {
 }
 
 function ResourcesTab() {
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('All');
   const list = [
-    { type: 'PDF', title: 'Visual Schedule Templates', cat: 'Classroom', desc: 'Printable daily schedule cards for autistic learners.' },
-    { type: 'Video', title: 'Communication Strategies', cat: 'Training', desc: 'Step-by-step video on using AAC devices in class.' },
-    { type: 'PDF', title: 'Sensory Checklist', cat: 'Assessment', desc: 'Identify sensory sensitivities in your students.' },
-    { type: 'PDF', title: 'Inclusive Lesson Plan', cat: 'Classroom', desc: 'Lesson plan template for mixed-ability classrooms.' },
-    { type: 'Video', title: 'Positive Behavior Support', cat: 'Training', desc: 'Practical strategies for managing behavior.' },
-    { type: 'PDF', title: 'Parent Communication Guide', cat: 'Communication', desc: 'Tips for effective home-school collaboration.' },
+    { type: 'Guides', title: 'Visual Schedule Templates', cat: 'Classroom', desc: 'Printable daily schedule cards for autistic learners.' },
+    { type: 'Videos', title: 'Communication Strategies', cat: 'Training', desc: 'Step-by-step video on using AAC devices in class.' },
+    { type: 'Visual Aids', title: 'Sensory Checklist', cat: 'Assessment', desc: 'Identify sensory sensitivities in your students.' },
+    { type: 'Lesson Plans', title: 'Inclusive Lesson Plan', cat: 'Classroom', desc: 'Lesson plan template for mixed-ability classrooms.' },
+    { type: 'Videos', title: 'Positive Behavior Support', cat: 'Training', desc: 'Practical strategies for managing behavior.' },
+    { type: 'Guides', title: 'Parent Communication Guide', cat: 'Communication', desc: 'Tips for effective home-school collaboration.' },
   ];
+  const visible = list.filter(r => (filter === 'All' || r.type === filter) && r.title.toLowerCase().includes(query.toLowerCase()));
   return (
     <div className="page">
       <div className="page-head"><h1>Resources</h1><p>Visual aids, lesson plans, and guides for your teaching.</p></div>
+      <div className="filter-row">
+        <input className="filter-search" placeholder="Search resources..." value={query} onChange={(e) => setQuery(e.target.value)} />
+      </div>
+      <div className="filter-row">
+        {['All', 'Videos', 'Guides', 'Lesson Plans', 'Visual Aids'].map(t => (
+          <button key={t} className={`filter-chip ${filter === t ? 'active' : ''}`} onClick={() => setFilter(t)}>{t}</button>
+        ))}
+      </div>
       <div className="res-grid">
-        {list.map((r, i) => (
+        {visible.map((r, i) => (
           <div className="res-card" key={i}>
-            <div className="res-top"><Badge label={r.type} type={r.type === 'Video' ? 'blue' : 'gray'} /><span className="res-cat">{r.cat}</span></div>
+            <div className="res-top"><Badge label={r.type} type={r.type === 'Videos' ? 'blue' : r.type === 'Guides' ? 'green' : 'gray'} /><span className="res-cat">{r.cat}</span></div>
             <div className="res-title">{r.title}</div>
             <div className="res-desc">{r.desc}</div>
-            <button className="btn-sm"><Icon name={r.type === 'Video' ? 'play' : 'download'} size={13} /> {r.type === 'Video' ? 'Watch' : 'Download'}</button>
+            <button className="btn-sm"><Icon name={r.type === 'Videos' ? 'play' : 'download'} size={13} /> {r.type === 'Videos' ? 'View' : 'Download'}</button>
           </div>
         ))}
       </div>
@@ -691,6 +775,7 @@ function ResourcesTab() {
 
 function MessagesTab() {
   const [msg, setMsg] = useState('');
+  const [activeConversation, setActiveConversation] = useState('Ms. Uwase');
   const [msgs, setMsgs] = useState([
     { from: 'Ms. Uwase', text: 'Amani had a great session — engaged well with the visual schedule.', time: '9:15 AM', mine: false },
     { from: 'Parent', text: 'Thank you! Could you share what visuals you used?', time: '6:30 PM', mine: true },
@@ -704,19 +789,32 @@ function MessagesTab() {
   return (
     <div className="page">
       <div className="page-head"><h1>Messages</h1><p>Communicate securely with parents and teachers.</p></div>
-      <div className="chat-shell">
-        <div className="chat-msgs">
-          {msgs.map((m, i) => (
-            <div key={i} className={`bwrap ${m.mine ? 'right' : 'left'}`}>
-              {!m.mine && <div className="bname">{m.from}</div>}
-              <div className={`bubble ${m.mine ? 'bmine' : 'btheirs'}`}>{m.text}</div>
-              <div className="btime">{m.time}</div>
-            </div>
+      <div className="chat-layout">
+        <div className="chat-list">
+          {['Ms. Uwase', 'Parent Group', 'School Admin'].map((c) => (
+            <button key={c} className={`chat-list-item ${activeConversation === c ? 'active' : ''}`} onClick={() => setActiveConversation(c)}>
+              <div className="chat-list-avatar">{c.charAt(0)}</div>
+              <div>
+                <div className="li-title">{c}</div>
+                <div className="li-sub">Recent message preview...</div>
+              </div>
+            </button>
           ))}
         </div>
-        <div className="chat-input">
-          <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message..." />
-          <button className="btn-primary" onClick={send}><Icon name="send" size={16} /></button>
+        <div className="chat-shell">
+          <div className="chat-msgs">
+            {msgs.map((m, i) => (
+              <div key={i} className={`bwrap ${m.mine ? 'right' : 'left'}`}>
+                {!m.mine && <div className="bname">{m.from}</div>}
+                <div className={`bubble ${m.mine ? 'bmine' : 'btheirs'}`}>{m.text}</div>
+                <div className="btime">{m.time}</div>
+              </div>
+            ))}
+          </div>
+          <div className="chat-input">
+            <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message..." />
+            <button className="btn-primary" onClick={send}><Icon name="send" size={16} /></button>
+          </div>
         </div>
       </div>
     </div>
@@ -763,12 +861,12 @@ function FeedbackTab() {
 function ParentDashboard({ user, onLogout, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const nav = [
-    { id: 'home', label: 'Overview', icon: 'home' },
+    { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'activities', label: 'Activities', icon: 'calendar' },
-    { id: 'progress', label: 'Child Progress', icon: 'chart' },
-    { id: 'resources', label: 'Resources', icon: 'book' },
+    { id: 'progress', label: 'Progress Tracking', icon: 'chart' },
+    { id: 'resources', label: 'Resource Library', icon: 'book' },
     { id: 'messages', label: 'Messages', icon: 'message' },
-    { id: 'feedback', label: 'Feedback', icon: 'star' },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
   return (
     <Shell user={user} onLogout={onLogout} {...notifProps} navItems={nav} activeTab={tab} setActiveTab={setTab}>
@@ -777,7 +875,7 @@ function ParentDashboard({ user, onLogout, ...notifProps }) {
       {tab === 'progress' && <ProgressTab />}
       {tab === 'resources' && <ResourcesTab />}
       {tab === 'messages' && <MessagesTab />}
-      {tab === 'feedback' && <FeedbackTab />}
+      {tab === 'settings' && <SettingsWorkspace user={user} />}
     </Shell>
   );
 }
@@ -832,13 +930,14 @@ function ParentHome({ user }) {
 }
 
 function ActivitiesTab() {
+  const [activeActivity, setActiveActivity] = useState(null);
   const list = [
-    { title: 'Matching Colors Game', cat: 'Cognitive', time: '10 min', diff: 'Easy', desc: 'Match colored objects to their corresponding color cards.' },
-    { title: 'Story Time with Pictures', cat: 'Language', time: '15 min', diff: 'Easy', desc: 'Read illustrated stories and discuss the pictures together.' },
-    { title: 'Emotions Card Exercise', cat: 'Social', time: '10 min', diff: 'Easy', desc: 'Use emotion cards to identify and name feelings.' },
-    { title: 'Daily Routine Practice', cat: 'Life Skills', time: '20 min', diff: 'Medium', desc: 'Practice routines using visual step-by-step guides.' },
-    { title: 'Counting with Objects', cat: 'Math', time: '15 min', diff: 'Easy', desc: 'Use everyday objects to practice counting and basic math.' },
-    { title: 'Sensory Play', cat: 'Sensory', time: '20 min', diff: 'Easy', desc: 'Safe sensory activities using sand, water, or playdough.' },
+    { title: 'Matching Colors Game', cat: 'Interactive', time: '10 min', diff: 'Easy', desc: 'Match colored objects to their corresponding color cards.' },
+    { title: 'Story Time with Pictures', cat: 'Reading', time: '15 min', diff: 'Easy', desc: 'Read illustrated stories and discuss the pictures together.' },
+    { title: 'Emotions Card Exercise', cat: 'Visual', time: '10 min', diff: 'Easy', desc: 'Use emotion cards to identify and name feelings.' },
+    { title: 'Daily Routine Practice', cat: 'Visual', time: '20 min', diff: 'Medium', desc: 'Practice routines using visual step-by-step guides.' },
+    { title: 'Counting with Objects', cat: 'Interactive', time: '15 min', diff: 'Easy', desc: 'Use everyday objects to practice counting and basic math.' },
+    { title: 'Sensory Play', cat: 'Interactive', time: '20 min', diff: 'Easy', desc: 'Safe sensory activities using sand, water, or playdough.' },
   ];
   return (
     <div className="page">
@@ -849,32 +948,112 @@ function ActivitiesTab() {
             <div className="res-top"><Badge label={a.cat} type="blue" /><span className="res-cat">{a.time} · {a.diff}</span></div>
             <div className="res-title">{a.title}</div>
             <div className="res-desc">{a.desc}</div>
-            <button className="btn-sm">View Activity</button>
+            <button className="btn-sm" onClick={() => setActiveActivity(a)}>Start Activity</button>
           </div>
         ))}
       </div>
+      {activeActivity && (
+        <div className="card" style={{ marginTop: 18 }}>
+          <div className="card-title">{activeActivity.title} - Step by Step</div>
+          <ol className="lesson-steps">
+            <li>Prepare materials and visual aids.</li>
+            <li>Demonstrate the activity once.</li>
+            <li>Let the child complete with guidance.</li>
+            <li>Encourage and mark activity as done.</li>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }
 
 function ProgressTab() {
-  const areas = [
-    { area: 'Communication', pct: 72, note: 'Using more words this month' },
-    { area: 'Social Skills', pct: 55, note: 'Engaging better with peers' },
-    { area: 'Learning Activities', pct: 85, note: 'Excellent completion rate' },
-    { area: 'Emotional Regulation', pct: 60, note: 'Improving with visual aids' },
+  const weeklyProgress = [
+    { week: 'W1', score: 45 },
+    { week: 'W2', score: 56 },
+    { week: 'W3', score: 63 },
+    { week: 'W4', score: 72 },
+  ];
+  const activities = [
+    { name: 'Visual cards', done: 8 },
+    { name: 'Reading', done: 5 },
+    { name: 'Interactive', done: 7 },
   ];
   return (
     <div className="page">
-      <div className="page-head"><h1>Child Progress</h1><p>Track your child's development across key areas.</p></div>
+      <div className="page-head"><h1>Progress Tracking</h1><p>Monitor your child's recent progress trends and completed activities.</p></div>
       <div className="prog-grid">
-        {areas.map((p, i) => (
-          <div className="prog-card" key={i}>
-            <div className="pc-head"><h3>{p.area}</h3><span className="pc-pct">{p.pct}%</span></div>
-            <ProgressBar value={p.pct} />
-            <p className="pc-note">{p.note}</p>
+        <div className="prog-card">
+          <div className="pc-head"><h3>Weekly Progress Score</h3><span className="pc-pct">72%</span></div>
+          <div className="chart-wrap">
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={weeklyProgress}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(136,146,176,0.25)" />
+                <XAxis dataKey="week" stroke="#8892b0" />
+                <YAxis stroke="#8892b0" />
+                <Tooltip />
+                <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        ))}
+        </div>
+        <div className="prog-card">
+          <div className="pc-head"><h3>Activities Completed</h3><span className="pc-pct">20</span></div>
+          <div className="chart-wrap">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={activities}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(136,146,176,0.25)" />
+                <XAxis dataKey="name" stroke="#8892b0" />
+                <YAxis stroke="#8892b0" />
+                <Tooltip />
+                <Bar dataKey="done" fill="#2563eb" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+      <button className="btn-primary">Download Report</button>
+    </div>
+  );
+}
+
+function SettingsWorkspace({ user }) {
+  return (
+    <div className="page">
+      <div className="page-head"><h1>Settings</h1><p>Manage your profile, notifications, and preferences.</p></div>
+      <div className="two-col">
+        <div className="card">
+          <div className="card-title">Profile</div>
+          <div className="auth-field"><label>Full Name</label><input defaultValue={user?.name || ''} /></div>
+          <div className="auth-field"><label>Email</label><input defaultValue={user?.email || ''} /></div>
+          <button className="btn-sm">Save Profile</button>
+        </div>
+        <div className="card">
+          <div className="card-title">Change Password</div>
+          <div className="auth-field"><label>Current Password</label><input type="password" placeholder="Current password" /></div>
+          <div className="auth-field"><label>New Password</label><input type="password" placeholder="New password" /></div>
+          <button className="btn-sm">Update Password</button>
+        </div>
+      </div>
+      <div className="two-col" style={{ marginTop: 16 }}>
+        <div className="card">
+          <div className="card-title">Notification Preferences</div>
+          <div className="list-item"><div className="li-body"><div className="li-title">Messages</div><div className="li-sub">Email and in-app alerts</div></div><Badge label="Enabled" type="green" /></div>
+          <div className="list-item"><div className="li-body"><div className="li-title">Progress Updates</div><div className="li-sub">Child and student updates</div></div><Badge label="Enabled" type="green" /></div>
+          <div className="list-item"><div className="li-body"><div className="li-title">Resource Alerts</div><div className="li-sub">New guides and lesson plans</div></div><Badge label="Enabled" type="green" /></div>
+          <button className="btn-sm">Save Preferences</button>
+        </div>
+        <div className="card">
+          <div className="card-title">Language</div>
+          <div className="auth-field">
+            <label>Preferred Language</label>
+            <select defaultValue="english">
+              <option value="english">English</option>
+              <option value="kinyarwanda">Kinyarwanda (Coming soon)</option>
+            </select>
+          </div>
+          <button className="btn-sm">Save Language</button>
+        </div>
       </div>
     </div>
   );
@@ -973,6 +1152,7 @@ function AdminDashboard({ user, onLogout, users, setUsers, ...notifProps }) {
     { id: 'overview', label: 'Overview', icon: 'grid' },
     { id: 'users', label: 'Users', icon: 'users' },
     { id: 'reports', label: 'Reports', icon: 'bar_chart' },
+    { id: 'feedback', label: 'Feedback', icon: 'star' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
   return (
@@ -980,6 +1160,7 @@ function AdminDashboard({ user, onLogout, users, setUsers, ...notifProps }) {
       {tab === 'overview' && <AdminOverview />}
       {tab === 'users' && <UsersTab users={users} setUsers={setUsers} />}
       {tab === 'reports' && <ReportsTab />}
+      {tab === 'feedback' && <FeedbackTab />}
       {tab === 'settings' && <SettingsTab />}
     </Shell>
   );
