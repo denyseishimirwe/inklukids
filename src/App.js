@@ -1302,6 +1302,9 @@ function MessagesTab({ user, accessToken }) {
   const [msgs, setMsgs] = useState([]);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [showNewPersonPicker, setShowNewPersonPicker] = useState(false);
+  const [newPersonQuery, setNewPersonQuery] = useState('');
+  const [newPersonRole, setNewPersonRole] = useState('all');
   const [fallback, setFallback] = useState({
     'Parent (Amani)': [
       { from: 'Teacher', text: 'Amani had a great session - engaged well with the visual schedule.', time: '9:15 AM', mine: false },
@@ -1418,11 +1421,27 @@ function MessagesTab({ user, accessToken }) {
   const activeMsgs = usingFallback ? (fallback[activeFallbackName] || []) : msgs;
   const activeName = usingFallback ? activeFallbackName : (activeThread?.name || 'Messages');
   const activeDisplayName = usingFallback ? activeName : personLabel(activeThread?.name, activeThread?.role);
+  const newPersonCandidates = threads.filter((t) => {
+    const q = newPersonQuery.trim().toLowerCase();
+    const roleOk = newPersonRole === 'all' || t.role === newPersonRole;
+    const text = `${t.name || ''} ${t.email || ''} ${t.role || ''}`.toLowerCase();
+    return roleOk && (!q || text.includes(q));
+  });
   return (
     <div className="page">
       <div className="page-head"><h1>Messages</h1><p>Communicate securely with parents and teachers.</p></div>
       {!usingFallback && (
         <div className="filter-row">
+          <button
+            className="btn-sm"
+            type="button"
+            onClick={() => {
+              setShowNewPersonPicker((p) => !p);
+            }}
+            title="Start chat with a new person"
+          >
+            <Icon name="plus" size={14} /> New person
+          </button>
           <input className="filter-search" placeholder="Search by name, email, or role..." value={query} onChange={(e) => setQuery(e.target.value)} />
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="all">All categories</option>
@@ -1430,6 +1449,48 @@ function MessagesTab({ user, accessToken }) {
             <option value="teacher">Teachers</option>
             <option value="admin">Admins</option>
           </select>
+        </div>
+      )}
+      {!usingFallback && showNewPersonPicker && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="card-title-row">
+            <div className="card-title">Start a new conversation</div>
+            <div className="card-title-actions">
+              <button className="btn-sm" type="button" onClick={() => setShowNewPersonPicker(false)}>Close</button>
+            </div>
+          </div>
+          <div className="filter-row">
+            <input className="filter-search" placeholder="Find by name or email..." value={newPersonQuery} onChange={(e) => setNewPersonQuery(e.target.value)} />
+            <select value={newPersonRole} onChange={(e) => setNewPersonRole(e.target.value)}>
+              <option value="all">All categories</option>
+              <option value="parent">Parents</option>
+              <option value="teacher">Teachers</option>
+              <option value="admin">Admins</option>
+            </select>
+          </div>
+          <div className="chat-list" style={{ marginTop: 8 }}>
+            {newPersonCandidates.map((t) => (
+              <button
+                key={t.userId}
+                className={`chat-list-item ${activeUserId === t.userId ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveUserId(t.userId);
+                  setShowNewPersonPicker(false);
+                }}
+              >
+                <div className="chat-list-avatar">{t.name.charAt(0)}</div>
+                <div className="chat-list-meta">
+                  <div className="chat-list-top">
+                    <div className="li-title">{personLabel(t.name, t.role)}</div>
+                  </div>
+                  <div className="li-sub chat-list-preview">{t.email || 'No email listed'}</div>
+                </div>
+              </button>
+            ))}
+            {newPersonCandidates.length === 0 && (
+              <div className="li-sub" style={{ padding: 10 }}>No people found for this filter.</div>
+            )}
+          </div>
         </div>
       )}
       <div className="chat-layout">
