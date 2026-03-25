@@ -35,12 +35,14 @@ const Icon = ({ name, size = 20, color = 'currentColor' }) => {
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></>,
     puzzle: <><path d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z" /><line x1="16" y1="8" x2="2" y2="22" /><line x1="17.5" y1="15" x2="9" y2="15" /></>,
     send: <><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></>,
+    plus: <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>,
     arrow_left: <><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></>,
     grid: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></>,
     activity: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
     smile: <><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" /></>,
     award: <><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" /></>,
     edit: <><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></>,
+    trash: <><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" /></>,
     bar_chart: <><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>,
     child: <><circle cx="12" cy="6" r="3" /><path d="M9 12h6l1 8H8l1-8z" /></>,
     arrow_right: <><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>,
@@ -139,7 +141,7 @@ function App() {
   if (page === 'home') return <LandingPage go={setPage} />;
   if (page === 'login') return <AuthPage mode="login" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
   if (page === 'register') return <AuthPage mode="register" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
-  if (page === 'teacher-dashboard') return <TeacherDashboard user={user} onLogout={handleLogout} {...notifProps} />;
+  if (page === 'teacher-dashboard') return <TeacherDashboard user={user} onLogout={handleLogout} accessToken={accessToken} {...notifProps} />;
   if (page === 'parent-dashboard') return <ParentDashboard user={user} onLogout={handleLogout} {...notifProps} />;
   if (page === 'admin-dashboard') return <AdminDashboard user={user} onLogout={handleLogout} users={users} setUsers={setUsers} {...notifProps} />;
   if (page === 'child-dashboard') return <ChildDashboard user={user} onLogout={handleLogout} accessToken={accessToken} />;
@@ -620,13 +622,19 @@ function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRe
               </button>
               {showNotif && <NotifPanel notifications={notifications} markRead={markRead} markAllRead={markAllRead} onClose={() => setShowNotif(false)} />}
             </div>
-            <div className="topbar-user">
+            <button
+              type="button"
+              className="topbar-user"
+              onClick={() => setActiveTab?.('settings')}
+              aria-label="Open settings"
+              title="Profile & settings"
+            >
               <div className="topbar-user-av">{user?.name?.charAt(0)}</div>
               <div>
                 <div className="topbar-user-name">{user?.name}</div>
                 <div className="topbar-user-role">{user?.role === 'admin' ? 'School Admin' : user?.role}</div>
               </div>
-            </div>
+            </button>
           </div>
         </header>
         <main className="main-content">{children}</main>
@@ -652,16 +660,178 @@ const ProgressBar = ({ value, color = 'var(--brand)' }) => (
 
 const Badge = ({ label, type = 'blue' }) => <span className={`badge ${type}`}>{label}</span>;
 
+function TeacherActivitiesTab({ accessToken }) {
+  const [list, setList] = useState([]);
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [showNew, setShowNew] = useState(false);
+  const [draft, setDraft] = useState({ title: '', description: '', icon: 'puzzle', color: '#dbeafe', steps: [''] });
+  const [toast, setToast] = useState('');
+
+  const showToast = (t) => {
+    setToast(t);
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(''), 1800);
+  };
+
+  const load = () => apiFetch('/api/activities/mine', { accessToken }).then(d => setList(d.activities || [])).catch((e) => showToast(e.message || 'Failed to load activities'));
+
+  useEffect(() => {
+    if (!accessToken) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
+
+  const visible = list.filter(a => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+  });
+
+  const saveDraft = async () => {
+    const steps = (draft.steps || []).map(s => s.trim()).filter(Boolean);
+    await apiFetch('/api/activities', { method: 'POST', accessToken, body: { ...draft, steps } });
+    setShowNew(false);
+    setDraft({ title: '', description: '', icon: 'puzzle', color: '#dbeafe', steps: [''] });
+    showToast('Activity created');
+    load();
+  };
+
+  const saveSelected = async () => {
+    if (!selected) return;
+    const steps = (selected.steps || []).map(s => s.trim()).filter(Boolean);
+    await apiFetch(`/api/activities/${selected.id}`, { method: 'PUT', accessToken, body: { ...selected, steps } });
+    showToast('Saved');
+    setSelected(null);
+    load();
+  };
+
+  const deleteSelected = async () => {
+    if (!selected) return;
+    await apiFetch(`/api/activities/${selected.id}`, { method: 'DELETE', accessToken });
+    showToast('Deleted');
+    setSelected(null);
+    load();
+  };
+
+  const StepEditor = ({ value, onChange }) => (
+    <div className="step-editor">
+      {value.map((s, i) => (
+        <div key={i} className="step-row">
+          <input value={s} onChange={(e) => onChange(value.map((x, idx) => idx === i ? e.target.value : x))} placeholder={`Step ${i + 1}`} />
+          <button className="btn-sm" type="button" onClick={() => onChange(value.filter((_, idx) => idx !== i))}>Remove</button>
+        </div>
+      ))}
+      <button className="btn-sm" type="button" onClick={() => onChange([...value, ''])}><Icon name="plus" size={14} /> Add step</button>
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <h1>Activities</h1>
+        <p>Create and manage activities for children to complete.</p>
+      </div>
+
+      <div className="filter-row">
+        <input className="filter-search" placeholder="Search activities..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        <button className="btn-primary" onClick={() => setShowNew(true)}><Icon name="plus" size={16} /> New activity</button>
+      </div>
+
+      <div className="res-grid">
+        {visible.map((a) => (
+          <div key={a.id} className="res-card">
+            <div className="res-top">
+              <Badge label="Activity" type="blue" />
+              <span className="res-cat">{a.icon} · {a.color}</span>
+            </div>
+            <div className="res-title">{a.title}</div>
+            <div className="res-desc">{a.description}</div>
+            <div className="res-actions">
+              <button className="btn-sm" onClick={() => setSelected({ ...a, steps: a.steps || [] })}><Icon name="edit" size={13} /> Edit</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showNew && (
+        <div className="card" style={{ marginTop: 18 }}>
+          <div className="card-title-row">
+            <div className="card-title">New activity</div>
+            <div className="card-title-actions">
+              <button className="btn-sm" onClick={() => setShowNew(false)}>Close</button>
+            </div>
+          </div>
+          <div className="two-col" style={{ gap: 12 }}>
+            <div className="auth-field"><label>Title</label><input value={draft.title} onChange={(e) => setDraft(p => ({ ...p, title: e.target.value }))} /></div>
+            <div className="auth-field"><label>Icon</label>
+              <select value={draft.icon} onChange={(e) => setDraft(p => ({ ...p, icon: e.target.value }))}>
+                {['puzzle', 'smile', 'star', 'calendar', 'book', 'activity'].map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="auth-field"><label>Description</label><textarea rows={3} value={draft.description} onChange={(e) => setDraft(p => ({ ...p, description: e.target.value }))} /></div>
+          <div className="two-col" style={{ gap: 12 }}>
+            <div className="auth-field"><label>Card color</label><input value={draft.color} onChange={(e) => setDraft(p => ({ ...p, color: e.target.value }))} placeholder="#dbeafe" /></div>
+            <div className="auth-field"><label>Preview</label>
+              <div className="activity-preview" style={{ '--acc': draft.color }}>
+                <div className="cc-icon"><Icon name={draft.icon} size={28} /></div>
+                <div>
+                  <div className="cc-title">{draft.title || 'Activity title'}</div>
+                  <div className="cc-desc">{draft.description || 'Short description'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="auth-field"><label>Steps</label><StepEditor value={draft.steps} onChange={(steps) => setDraft(p => ({ ...p, steps }))} /></div>
+          <div className="lesson-actions">
+            <button className="btn-primary" onClick={saveDraft}><Icon name="check" size={16} /> Create activity</button>
+          </div>
+        </div>
+      )}
+
+      {selected && (
+        <div className="card" style={{ marginTop: 18 }}>
+          <div className="card-title-row">
+            <div className="card-title">Edit activity</div>
+            <div className="card-title-actions">
+              <button className="btn-sm" onClick={() => setSelected(null)}>Close</button>
+            </div>
+          </div>
+          <div className="two-col" style={{ gap: 12 }}>
+            <div className="auth-field"><label>Title</label><input value={selected.title} onChange={(e) => setSelected(p => ({ ...p, title: e.target.value }))} /></div>
+            <div className="auth-field"><label>Icon</label>
+              <select value={selected.icon} onChange={(e) => setSelected(p => ({ ...p, icon: e.target.value }))}>
+                {['puzzle', 'smile', 'star', 'calendar', 'book', 'activity'].map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="auth-field"><label>Description</label><textarea rows={3} value={selected.description} onChange={(e) => setSelected(p => ({ ...p, description: e.target.value }))} /></div>
+          <div className="auth-field"><label>Card color</label><input value={selected.color} onChange={(e) => setSelected(p => ({ ...p, color: e.target.value }))} /></div>
+          <div className="auth-field"><label>Steps</label><StepEditor value={selected.steps || []} onChange={(steps) => setSelected(p => ({ ...p, steps }))} /></div>
+          <div className="res-actions" style={{ justifyContent: 'space-between', marginTop: 10 }}>
+            <button className="btn-sm" onClick={deleteSelected}><Icon name="trash" size={13} /> Delete</button>
+            <button className="btn-primary" onClick={saveSelected}><Icon name="check" size={16} /> Save</button>
+          </div>
+        </div>
+      )}
+
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────
    TEACHER DASHBOARD
 ───────────────────────────────────────── */
-function TeacherDashboard({ user, onLogout, ...notifProps }) {
+function TeacherDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const [trainingOpenTitle, setTrainingOpenTitle] = useState(null);
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'training', label: 'Training Modules', icon: 'graduation' },
     { id: 'students', label: 'Progress Tracking', icon: 'chart' },
+    { id: 'activities', label: 'Activities', icon: 'calendar' },
     { id: 'resources', label: 'Resources', icon: 'book' },
     { id: 'messages', label: 'Messages', icon: 'message' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -676,6 +846,7 @@ function TeacherDashboard({ user, onLogout, ...notifProps }) {
       )}
       {tab === 'training' && <TrainingTab openModuleTitle={trainingOpenTitle} onModuleOpened={() => setTrainingOpenTitle(null)} />}
       {tab === 'students' && <StudentsTab />}
+      {tab === 'activities' && <TeacherActivitiesTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
       {tab === 'messages' && <MessagesTab />}
       {tab === 'settings' && <SettingsWorkspace user={user} />}

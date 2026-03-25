@@ -7,6 +7,7 @@ const ActivitySchema = new mongoose.Schema({
   color: { type: String, required: true, trim: true },
   steps: { type: [String], default: [] },
   active: { type: Boolean, default: true },
+  createdByUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Activity', ActivitySchema);
