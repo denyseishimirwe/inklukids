@@ -15,6 +15,7 @@ import lpRoleChild from './assets/lp-diverse/role-child.jpg';
 import lpRoleAdmin from './assets/lp-diverse/role-admin.jpg';
 import lpDashboardStrip from './assets/lp-diverse/dashboard.jpg';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { apiFetch } from './api/client';
 
 const Icon = ({ name, size = 20, color = 'currentColor' }) => {
   const icons = {
@@ -87,6 +88,7 @@ function App() {
   const [page, setPage] = useState('home');
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState(SEED_USERS);
+  const [accessToken, setAccessToken] = useState(null);
   const [notifications, setNotifications] = useState([
     { id: 1, text: 'New training module: Sensory Strategies', time: '2 hours ago', read: false },
     { id: 2, text: 'Amani completed 3 activities this week', time: '5 hours ago', read: false },
@@ -98,21 +100,41 @@ function App() {
   const markRead = (id) => setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
   const markAllRead = () => setNotifications(p => p.map(n => ({ ...n, read: true })));
 
+  // Try refreshing access token on boot (uses refresh cookie if present)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch('/api/auth/refresh', { method: 'POST' });
+        if (cancelled) return;
+        if (data?.accessToken) setAccessToken(data.accessToken);
+      } catch {
+        // not logged in; ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleAuth = (u, isNew) => {
     if (isNew) setUsers(p => [...p, u]);
     setUser(u);
     setPage(u.role + '-dashboard');
   };
-  const handleLogout = () => { setUser(null); setPage('home'); };
+  const handleLogout = async () => {
+    try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch {}
+    setAccessToken(null);
+    setUser(null);
+    setPage('home');
+  };
   const notifProps = { notifications, unreadCount, markRead, markAllRead };
 
   if (page === 'home') return <LandingPage go={setPage} />;
-  if (page === 'login') return <AuthPage mode="login" go={setPage} users={users} onAuth={handleAuth} />;
-  if (page === 'register') return <AuthPage mode="register" go={setPage} users={users} onAuth={handleAuth} />;
+  if (page === 'login') return <AuthPage mode="login" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
+  if (page === 'register') return <AuthPage mode="register" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
   if (page === 'teacher-dashboard') return <TeacherDashboard user={user} onLogout={handleLogout} {...notifProps} />;
   if (page === 'parent-dashboard') return <ParentDashboard user={user} onLogout={handleLogout} {...notifProps} />;
   if (page === 'admin-dashboard') return <AdminDashboard user={user} onLogout={handleLogout} users={users} setUsers={setUsers} {...notifProps} />;
-  if (page === 'child-dashboard') return <ChildDashboard user={user} onLogout={handleLogout} />;
+  if (page === 'child-dashboard') return <ChildDashboard user={user} onLogout={handleLogout} accessToken={accessToken} />;
   return <LandingPage go={setPage} />;
 }
 
@@ -338,7 +360,7 @@ function LandingPage({ go }) {
 /* ─────────────────────────────────────────
    AUTH PAGE
 ───────────────────────────────────────── */
-function AuthPage({ mode, go, users, onAuth }) {
+function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
   const isLogin = mode === 'login';
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', role: 'teacher' });
@@ -362,17 +384,41 @@ function AuthPage({ mode, go, users, onAuth }) {
     if (normalizedPassword !== normalizedConfirm) { setError('Passwords do not match.'); return; }
     if (users.find(u => (u.email || '').toLowerCase() === normalizedEmail)) { setError('An account with this email already exists.'); return; }
     if (form.role === 'parent') { setError(''); setStep(2); }
-    else { onAuth({ id: Date.now(), name: normalizedName, email: normalizedEmail, password: normalizedPassword, role: form.role, status: 'Active' }, true); }
+    else {
+      apiFetch('/api/auth/register', {
+        method: 'POST',
+        body: { name: normalizedName, email: normalizedEmail, password: normalizedPassword, role: form.role },
+      })
+        .then((data) => {
+          setAccessToken?.(data.accessToken);
+          onAuth({ ...data.user }, true);
+        })
+        .catch((e) => setError(e.message || 'Registration failed'));
+    }
   };
   const handleStep2 = () => {
     if (children.some(c => !c.name.trim())) { setError('Please enter a name for each child.'); return; }
-    onAuth({ id: Date.now(), name: normalizedName, email: normalizedEmail, password: normalizedPassword, role: form.role, status: 'Active', children }, true);
+    apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: { name: normalizedName, email: normalizedEmail, password: normalizedPassword, role: form.role, children },
+    })
+      .then((data) => {
+        setAccessToken?.(data.accessToken);
+        onAuth({ ...data.user }, true);
+      })
+      .catch((e) => setError(e.message || 'Registration failed'));
   };
   const handleLogin = () => {
     if (!normalizedEmail || !normalizedPassword) { setError('Please fill in all fields.'); return; }
-    const found = users.find(u => (u.email || '').toLowerCase() === normalizedEmail && (u.password || '') === normalizedPassword);
-    if (!found) { setError('Incorrect email or password.'); return; }
-    onAuth(found, false);
+    apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: { email: normalizedEmail, password: normalizedPassword },
+    })
+      .then((data) => {
+        setAccessToken?.(data.accessToken);
+        onAuth({ ...data.user }, false);
+      })
+      .catch((e) => setError(e.message || 'Incorrect email or password.'));
   };
 
   return (
@@ -1339,20 +1385,47 @@ function SettingsWorkspace({ user }) {
 /* ─────────────────────────────────────────
    CHILD DASHBOARD
 ───────────────────────────────────────── */
-function ChildDashboard({ user, onLogout }) {
+function ChildDashboard({ user, onLogout, accessToken }) {
   const [tab, setTab] = useState('play');
   const [done, setDone] = useState([]);
   const [active, setActive] = useState(null);
   const [sound, setSound] = useState(true);
   const [bigText, setBigText] = useState(false);
-  const activities = [
-    { id: 1, title: 'Color Match', desc: 'Match the colors!', icon: 'puzzle', color: '#fef9c3' },
-    { id: 2, title: 'How Do I Feel?', desc: 'Name your feelings', icon: 'smile', color: '#dcfce7' },
-    { id: 3, title: 'Count with Me', desc: 'Count fun objects', icon: 'star', color: '#dbeafe' },
-    { id: 4, title: 'My Daily Routine', desc: "What's your routine?", icon: 'calendar', color: '#fce7f3' },
-    { id: 5, title: 'Story Time', desc: 'Read a picture story', icon: 'book', color: '#ede9fe' },
-    { id: 6, title: 'Move Your Body', desc: 'Fun exercises!', icon: 'activity', color: '#ffedd5' },
-  ];
+  const [activities, setActivities] = useState([
+    { id: 'seed-1', title: 'Color Match', desc: 'Match the colors!', icon: 'puzzle', color: '#fef9c3' },
+    { id: 'seed-2', title: 'How Do I Feel?', desc: 'Name your feelings', icon: 'smile', color: '#dcfce7' },
+    { id: 'seed-3', title: 'Count with Me', desc: 'Count fun objects', icon: 'star', color: '#dbeafe' },
+    { id: 'seed-4', title: 'My Daily Routine', desc: "What's your routine?", icon: 'calendar', color: '#fce7f3' },
+    { id: 'seed-5', title: 'Story Time', desc: 'Read a picture story', icon: 'book', color: '#ede9fe' },
+    { id: 'seed-6', title: 'Move Your Body', desc: 'Fun exercises!', icon: 'activity', color: '#ffedd5' },
+  ]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingActivities(true);
+    apiFetch('/api/activities', { accessToken })
+      .then((data) => {
+        if (cancelled) return;
+        if (Array.isArray(data?.activities) && data.activities.length) {
+          setActivities(data.activities.map(a => ({
+            id: a.id,
+            title: a.title,
+            desc: a.description,
+            icon: a.icon,
+            color: a.color,
+            steps: a.steps || [],
+          })));
+        }
+      })
+      .catch(() => {
+        // keep seeded activities if backend not available yet
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingActivities(false);
+      });
+    return () => { cancelled = true; };
+  }, [accessToken]);
   const pts = done.length * 10;
   const complete = (id) => { if (!done.includes(id)) setDone(p => [...p, id]); };
   const open = (a) => { setActive(a); setTab('activity'); };
@@ -1408,10 +1481,12 @@ function ChildDashboard({ user, onLogout }) {
             <div className="card">
               <div className="card-title">Steps</div>
               <ol className="lesson-steps">
-                <li>Get ready and look at the pictures.</li>
-                <li>Try the activity once with help.</li>
-                <li>Try again by yourself.</li>
-                <li>When you finish, mark it as done.</li>
+                {(active.steps?.length ? active.steps : [
+                  'Get ready and look at the pictures.',
+                  'Try the activity once with help.',
+                  'Try again by yourself.',
+                  'When you finish, mark it as done.',
+                ]).map((s, i) => <li key={i}>{s}</li>)}
               </ol>
               <div className="lesson-actions">
                 <button className="btn-complete" onClick={() => markDone(active.id)}>
