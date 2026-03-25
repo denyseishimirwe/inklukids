@@ -132,7 +132,7 @@ function App() {
     try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch {}
     setAccessToken(null);
     setUser(null);
-    setPage('home');
+    setPage('login');
   };
   const notifProps = { notifications, unreadCount, markRead, markAllRead };
 
