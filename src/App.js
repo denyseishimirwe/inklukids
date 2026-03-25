@@ -107,7 +107,15 @@ function App() {
       try {
         const data = await apiFetch('/api/auth/refresh', { method: 'POST' });
         if (cancelled) return;
-        if (data?.accessToken) setAccessToken(data.accessToken);
+        if (data?.accessToken) {
+          setAccessToken(data.accessToken);
+          const me = await apiFetch('/api/auth/me', { accessToken: data.accessToken });
+          if (cancelled) return;
+          if (me?.user?.role) {
+            setUser(me.user);
+            setPage(me.user.role + '-dashboard');
+          }
+        }
       } catch {
         // not logged in; ignore
       }
@@ -1399,11 +1407,9 @@ function ChildDashboard({ user, onLogout, accessToken }) {
     { id: 'seed-5', title: 'Story Time', desc: 'Read a picture story', icon: 'book', color: '#ede9fe' },
     { id: 'seed-6', title: 'Move Your Body', desc: 'Fun exercises!', icon: 'activity', color: '#ffedd5' },
   ]);
-  const [loadingActivities, setLoadingActivities] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingActivities(true);
     apiFetch('/api/activities', { accessToken })
       .then((data) => {
         if (cancelled) return;
@@ -1421,9 +1427,6 @@ function ChildDashboard({ user, onLogout, accessToken }) {
       .catch(() => {
         // keep seeded activities if backend not available yet
       })
-      .finally(() => {
-        if (!cancelled) setLoadingActivities(false);
-      });
     return () => { cancelled = true; };
   }, [accessToken]);
   const pts = done.length * 10;
