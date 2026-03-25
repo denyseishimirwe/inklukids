@@ -7,6 +7,7 @@ const { activitiesRouter } = require('./routes/activities');
 const { progressRouter } = require('./routes/progress');
 const { usersRouter } = require('./routes/users');
 const { assignmentsRouter } = require('./routes/assignments');
+const { messagesRouter } = require('./routes/messages');
 
 function createApp({ clientOrigin, env }) {
   const app = express();
@@ -29,6 +30,7 @@ function createApp({ clientOrigin, env }) {
   app.use('/api/progress', progressRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/assignments', assignmentsRouter);
+  app.use('/api/messages', messagesRouter);
 
   return app;
 }

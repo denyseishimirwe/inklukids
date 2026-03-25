@@ -97,10 +97,27 @@ function App() {
     { id: 3, text: 'New message from Ms. Uwase', time: 'Yesterday', read: true },
     { id: 4, text: 'Parent guidelines updated', time: '2 days ago', read: true },
   ]);
+  const [messageNotifs, setMessageNotifs] = useState([]);
+  const [messageUnreadTotal, setMessageUnreadTotal] = useState(0);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const markRead = (id) => setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
-  const markAllRead = () => setNotifications(p => p.map(n => ({ ...n, read: true })));
+  const allNotifs = [...messageNotifs, ...notifications];
+  const unreadCount = notifications.filter(n => !n.read).length + messageUnreadTotal;
+  const markRead = (id) => {
+    setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
+    setMessageNotifs((p) => {
+      const next = p.map(n => n.id === id ? { ...n, read: true } : n);
+      setMessageUnreadTotal(next.reduce((sum, n) => sum + (n.read ? 0 : (n.unreadCount || 0)), 0));
+      return next;
+    });
+  };
+  const markAllRead = () => {
+    setNotifications(p => p.map(n => ({ ...n, read: true })));
+    setMessageNotifs((p) => {
+      const next = p.map(n => ({ ...n, read: true }));
+      setMessageUnreadTotal(0);
+      return next;
+    });
+  };
 
   // Try refreshing access token on boot (uses refresh cookie if present)
   useEffect(() => {
@@ -136,7 +153,45 @@ function App() {
     setUser(null);
     setPage('login');
   };
-  const notifProps = { notifications, unreadCount, markRead, markAllRead };
+  useEffect(() => {
+    if (!accessToken || !user?.role || !['teacher', 'parent', 'admin'].includes(user.role)) {
+      setMessageNotifs([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await apiFetch('/api/messages/threads', { accessToken });
+        if (cancelled) return;
+        const unreadThreads = (data?.threads || []).filter(t => (t.unreadCount || 0) > 0);
+        setMessageNotifs((prev) => {
+          const prevReadMap = new Map(prev.map(n => [n.id, !!n.read]));
+          const next = unreadThreads.map((t) => ({
+            id: `msg-${t.userId}`,
+            text: `New message from ${((t.role || 'user').charAt(0).toUpperCase() + (t.role || 'user').slice(1))} ${t.name}`,
+            time: t.lastAt ? new Date(t.lastAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Now',
+            read: prevReadMap.get(`msg-${t.userId}`) || false,
+            unreadCount: t.unreadCount || 0,
+          }));
+          setMessageUnreadTotal(next.reduce((sum, n) => sum + (n.read ? 0 : (n.unreadCount || 0)), 0));
+          return next;
+        });
+      } catch {
+        if (!cancelled) {
+          setMessageNotifs([]);
+          setMessageUnreadTotal(0);
+        }
+      }
+    };
+    load();
+    const interval = window.setInterval(load, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [accessToken, user?.role]);
+
+  const notifProps = { notifications: allNotifs, unreadCount, markRead, markAllRead };
 
   if (page === 'home') return <LandingPage go={setPage} />;
   if (page === 'login') return <AuthPage mode="login" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
@@ -937,7 +992,7 @@ function TeacherDashboard({ user, onLogout, accessToken, ...notifProps }) {
       {tab === 'students' && <StudentsTab />}
       {tab === 'activities' && <TeacherActivitiesTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
-      {tab === 'messages' && <MessagesTab />}
+      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} />}
       {tab === 'settings' && <SettingsWorkspace user={user} />}
     </Shell>
   );
@@ -1240,66 +1295,181 @@ function ResourcesTab() {
   );
 }
 
-function MessagesTab() {
+function MessagesTab({ user, accessToken }) {
   const [msg, setMsg] = useState('');
-  const [activeConversation, setActiveConversation] = useState('Parent (Amani)');
-  const [threads, setThreads] = useState({
+  const [threads, setThreads] = useState([]);
+  const [activeUserId, setActiveUserId] = useState('');
+  const [msgs, setMsgs] = useState([]);
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [fallback, setFallback] = useState({
     'Parent (Amani)': [
-      { from: 'Teacher', text: 'Amani had a great session — engaged well with the visual schedule.', time: '9:15 AM', mine: false },
+      { from: 'Teacher', text: 'Amani had a great session - engaged well with the visual schedule.', time: '9:15 AM', mine: false },
       { from: 'You', text: 'Thank you! Could you share what visuals you used?', time: '6:30 PM', mine: true },
       { from: 'Teacher', text: "Of course! I'll send over the picture cards. He loved the colour-coded routine board.", time: '7:02 PM', mine: false },
     ],
-    'Parent Group': [
-      { from: 'Parent', text: 'Is there a simple way to support sensory breaks at home?', time: 'Yesterday', mine: false },
-    ],
-    'School Admin': [
-      { from: 'Admin', text: 'Reminder: please complete Module 4 by Friday.', time: 'Mon', mine: false },
-    ],
   });
+  const [activeFallbackName, setActiveFallbackName] = useState('Parent (Amani)');
+  const [usingFallback, setUsingFallback] = useState(false);
+  const myLabel = `${(user?.role || 'user').charAt(0).toUpperCase() + (user?.role || 'user').slice(1)} ${user?.name || ''}`.trim();
+  const roleLabel = (role) => `${(role || 'user').charAt(0).toUpperCase() + (role || 'user').slice(1)}`;
+  const personLabel = (name, role) => `${roleLabel(role)} ${name || ''}`.trim();
 
-  const msgs = threads[activeConversation] || [];
-  const send = () => {
+  useEffect(() => {
+    if (!accessToken) {
+      setUsingFallback(true);
+      return;
+    }
+    let cancelled = false;
+    const loadThreads = () => apiFetch('/api/messages/threads', { accessToken })
+      .then((d) => {
+        if (cancelled) return;
+        const nextThreads = d.threads || [];
+        setThreads(nextThreads);
+        // keep user's current chat selected if still available
+        setActiveUserId((prev) => {
+          if (prev && nextThreads.some((t) => t.userId === prev)) return prev;
+          return nextThreads[0]?.userId || '';
+        });
+        setUsingFallback(false);
+      })
+      .catch(() => {
+        if (!cancelled) setUsingFallback(true);
+      });
+
+    loadThreads();
+    const interval = window.setInterval(loadThreads, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (usingFallback || !accessToken || !activeUserId) return;
+    let cancelled = false;
+    const loadConversation = () => {
+      apiFetch(`/api/messages/with/${activeUserId}`, { accessToken })
+        .then((d) => {
+          if (!cancelled) setMsgs(d.messages || []);
+        })
+        .catch(() => {
+          if (!cancelled) setMsgs([]);
+        });
+    };
+
+    loadConversation();
+    const interval = window.setInterval(loadConversation, 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [activeUserId, accessToken, usingFallback]);
+
+  const send = async () => {
     if (!msg.trim()) return;
-    setThreads(p => ({
-      ...p,
-      [activeConversation]: [...(p[activeConversation] || []), { from: 'You', text: msg, time: 'Now', mine: true }],
-    }));
-    setMsg('');
+    if (usingFallback || !accessToken) {
+      setFallback((p) => ({
+        ...p,
+        [activeFallbackName]: [...(p[activeFallbackName] || []), { from: 'You', text: msg, time: 'Now', mine: true }],
+      }));
+      setMsg('');
+      return;
+    }
+    if (!activeUserId) return;
+    try {
+      const text = msg.trim();
+      setMsg('');
+      const d = await apiFetch(`/api/messages/with/${activeUserId}`, { method: 'POST', accessToken, body: { text } });
+      setMsgs((p) => [...p, d.message]);
+      // refresh threads preview
+      const t = await apiFetch('/api/messages/threads', { accessToken });
+      setThreads(t.threads || []);
+    } catch {
+      // keep input cleared when backend fails to avoid duplicate sends from Enter spam
+    }
   };
 
-  const conversations = Object.keys(threads).map(name => {
-    const last = threads[name][threads[name].length - 1];
-    return { name, lastText: last?.text || '', lastTime: last?.time || '' };
+  const formatTime = (isoOrLabel) => {
+    if (!isoOrLabel) return '';
+    const d = new Date(isoOrLabel);
+    if (Number.isNaN(d.getTime())) return isoOrLabel;
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const activeThread = threads.find((t) => t.userId === activeUserId);
+  const conversations = usingFallback
+    ? Object.keys(fallback).map((name) => {
+      const last = fallback[name][fallback[name].length - 1];
+      return { id: name, name, lastText: last?.text || '', lastTime: last?.time || '' };
+    })
+    : threads.map((t) => ({ id: t.userId, name: t.name, lastText: t.lastText || '', lastTime: formatTime(t.lastAt), unreadCount: t.unreadCount || 0 }));
+  const visibleConversations = conversations.filter((c) => {
+    if (usingFallback) return c.name.toLowerCase().includes(query.trim().toLowerCase());
+    const thread = threads.find((t) => t.userId === c.id);
+    const q = query.trim().toLowerCase();
+    const matchesQuery = !q
+      || c.name.toLowerCase().includes(q)
+      || (thread?.role || '').toLowerCase().includes(q)
+      || (thread?.email || '').toLowerCase().includes(q);
+    const matchesRole = roleFilter === 'all' || (thread?.role || '') === roleFilter;
+    return matchesQuery && matchesRole;
   });
+  const activeMsgs = usingFallback ? (fallback[activeFallbackName] || []) : msgs;
+  const activeName = usingFallback ? activeFallbackName : (activeThread?.name || 'Messages');
+  const activeDisplayName = usingFallback ? activeName : personLabel(activeThread?.name, activeThread?.role);
   return (
     <div className="page">
       <div className="page-head"><h1>Messages</h1><p>Communicate securely with parents and teachers.</p></div>
+      {!usingFallback && (
+        <div className="filter-row">
+          <input className="filter-search" placeholder="Search by name, email, or role..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+            <option value="all">All categories</option>
+            <option value="parent">Parents</option>
+            <option value="teacher">Teachers</option>
+            <option value="admin">Admins</option>
+          </select>
+        </div>
+      )}
       <div className="chat-layout">
         <div className="chat-list">
-          {conversations.map((c) => (
-            <button key={c.name} className={`chat-list-item ${activeConversation === c.name ? 'active' : ''}`} onClick={() => setActiveConversation(c.name)}>
+          {visibleConversations.map((c) => (
+            <button
+              key={c.id}
+              className={`chat-list-item ${(usingFallback ? activeFallbackName === c.name : activeUserId === c.id) ? 'active' : ''}`}
+              onClick={() => (usingFallback ? setActiveFallbackName(c.name) : setActiveUserId(c.id))}
+            >
               <div className="chat-list-avatar">{c.name.charAt(0)}</div>
               <div className="chat-list-meta">
                 <div className="chat-list-top">
-                  <div className="li-title">{c.name}</div>
+                  <div className="li-title">{usingFallback ? c.name : personLabel(c.name, threads.find((t) => t.userId === c.id)?.role)}</div>
                   <div className="chat-list-time">{c.lastTime}</div>
                 </div>
-                <div className="li-sub chat-list-preview">{c.lastText}</div>
+                <div className="li-sub chat-list-preview">
+                  {c.lastText || (!usingFallback ? (threads.find((t) => t.userId === c.id)?.email || 'Start new chat') : '')}
+                </div>
               </div>
+              {!usingFallback && c.unreadCount > 0 && <Badge label={String(c.unreadCount)} type="blue" />}
             </button>
           ))}
+          {!usingFallback && visibleConversations.length === 0 && (
+            <div className="li-sub" style={{ padding: 10 }}>
+              No matching person. Try another name/category.
+            </div>
+          )}
         </div>
         <div className="chat-shell">
           <div className="chat-header">
-            <div className="chat-header-title">{activeConversation}</div>
-            <div className="chat-header-sub">Secure messaging</div>
+            <div className="chat-header-title">{activeDisplayName}</div>
+            <div className="chat-header-sub">{usingFallback ? 'Secure messaging' : `You are ${myLabel}`}</div>
           </div>
           <div className="chat-msgs">
-            {msgs.map((m, i) => (
+            {activeMsgs.map((m, i) => (
               <div key={i} className={`bwrap ${m.mine ? 'right' : 'left'}`}>
-                {!m.mine && <div className="bname">{m.from}</div>}
+                <div className="bname">{m.mine ? `You (${myLabel})` : (usingFallback ? m.from : activeDisplayName)}</div>
                 <div className={`bubble ${m.mine ? 'bmine' : 'btheirs'}`}>{m.text}</div>
-                <div className="btime">{m.time}</div>
+                <div className="btime">{usingFallback ? m.time : formatTime(m.createdAt)}</div>
               </div>
             ))}
           </div>
@@ -1378,7 +1548,7 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
       {tab === 'progress' && <ProgressTab />}
       {tab === 'assigned' && <ParentAssignedTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
-      {tab === 'messages' && <MessagesTab />}
+      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} />}
       {tab === 'settings' && <SettingsWorkspace user={user} />}
     </Shell>
   );
