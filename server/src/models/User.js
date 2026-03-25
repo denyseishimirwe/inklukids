@@ -22,6 +22,10 @@ const UserSchema = new mongoose.Schema({
   status: { type: String, default: 'Active' },
   children: { type: [ChildSchema], default: [] },
   childProgress: { type: ChildProgressSchema, default: () => ({}) },
+  // For linking existing child accounts to a parent account
+  linkedChildUserIds: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
+  // For child accounts: which parent they belong to (optional)
+  parentUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 import lpHero from './assets/lp-diverse/hero.jpg';
 import lpWhy from './assets/lp-diverse/why.jpg';
@@ -142,7 +142,7 @@ function App() {
   if (page === 'login') return <AuthPage mode="login" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
   if (page === 'register') return <AuthPage mode="register" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
   if (page === 'teacher-dashboard') return <TeacherDashboard user={user} onLogout={handleLogout} accessToken={accessToken} {...notifProps} />;
-  if (page === 'parent-dashboard') return <ParentDashboard user={user} onLogout={handleLogout} {...notifProps} />;
+  if (page === 'parent-dashboard') return <ParentDashboard user={user} onLogout={handleLogout} accessToken={accessToken} {...notifProps} />;
   if (page === 'admin-dashboard') return <AdminDashboard user={user} onLogout={handleLogout} users={users} setUsers={setUsers} {...notifProps} />;
   if (page === 'child-dashboard') return <ChildDashboard user={user} onLogout={handleLogout} accessToken={accessToken} />;
   return <LandingPage go={setPage} />;
@@ -586,6 +586,18 @@ function NotifPanel({ notifications, markRead, markAllRead, onClose }) {
 ───────────────────────────────────────── */
 function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRead, navItems, activeTab, setActiveTab, children }) {
   const [showNotif, setShowNotif] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef(null);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(e.target)) setShowUserMenu(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
   return (
     <div className="dashboard">
       <aside className="sidebar">
@@ -622,19 +634,49 @@ function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRe
               </button>
               {showNotif && <NotifPanel notifications={notifications} markRead={markRead} markAllRead={markAllRead} onClose={() => setShowNotif(false)} />}
             </div>
-            <button
-              type="button"
-              className="topbar-user"
-              onClick={() => setActiveTab?.('settings')}
-              aria-label="Open settings"
-              title="Profile & settings"
-            >
-              <div className="topbar-user-av">{user?.name?.charAt(0)}</div>
-              <div>
-                <div className="topbar-user-name">{user?.name}</div>
-                <div className="topbar-user-role">{user?.role === 'admin' ? 'School Admin' : user?.role}</div>
-              </div>
-            </button>
+            <div className="topbar-user-wrap" ref={userMenuRef}>
+              <button
+                type="button"
+                className="topbar-user"
+                onClick={() => setShowUserMenu((p) => !p)}
+                aria-haspopup="menu"
+                aria-expanded={showUserMenu}
+                aria-label="Open profile menu"
+                title="Profile menu"
+              >
+                <div className="topbar-user-av">{user?.name?.charAt(0)}</div>
+                <div>
+                  <div className="topbar-user-name">{user?.name}</div>
+                  <div className="topbar-user-role">{user?.role === 'admin' ? 'School Admin' : user?.role}</div>
+                </div>
+              </button>
+              {showUserMenu && (
+                <div className="topbar-user-menu" role="menu" aria-label="Profile menu">
+                  <button
+                    type="button"
+                    className="topbar-user-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setActiveTab?.('settings');
+                      setShowUserMenu(false);
+                    }}
+                  >
+                    Profile
+                  </button>
+                  <button
+                    type="button"
+                    className="topbar-user-menu-item danger"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onLogout?.();
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <main className="main-content">{children}</main>
@@ -660,11 +702,29 @@ const ProgressBar = ({ value, color = 'var(--brand)' }) => (
 
 const Badge = ({ label, type = 'blue' }) => <span className={`badge ${type}`}>{label}</span>;
 
+function StepEditor({ value, onChange }) {
+  return (
+    <div className="step-editor">
+      {value.map((s, i) => (
+        <div key={i} className="step-row">
+          <input value={s} onChange={(e) => onChange(value.map((x, idx) => (idx === i ? e.target.value : x)))} placeholder={`Step ${i + 1}`} />
+          <button className="btn-sm" type="button" onClick={() => onChange(value.filter((_, idx) => idx !== i))}>Remove</button>
+        </div>
+      ))}
+      <button className="btn-sm" type="button" onClick={() => onChange([...value, ''])}><Icon name="plus" size={14} /> Add step</button>
+    </div>
+  );
+}
+
 function TeacherActivitiesTab({ accessToken }) {
   const [list, setList] = useState([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [showNew, setShowNew] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
+  const [assigning, setAssigning] = useState(null);
+  const [children, setChildren] = useState([]);
+  const [assignChildId, setAssignChildId] = useState('');
   const [draft, setDraft] = useState({ title: '', description: '', icon: 'puzzle', color: '#dbeafe', steps: [''] });
   const [toast, setToast] = useState('');
 
@@ -675,10 +735,12 @@ function TeacherActivitiesTab({ accessToken }) {
   };
 
   const load = () => apiFetch('/api/activities/mine', { accessToken }).then(d => setList(d.activities || [])).catch((e) => showToast(e.message || 'Failed to load activities'));
+  const loadChildren = () => apiFetch('/api/users/children', { accessToken }).then(d => setChildren(d.children || [])).catch(() => {});
 
   useEffect(() => {
     if (!accessToken) return;
     load();
+    loadChildren();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
@@ -714,18 +776,6 @@ function TeacherActivitiesTab({ accessToken }) {
     load();
   };
 
-  const StepEditor = ({ value, onChange }) => (
-    <div className="step-editor">
-      {value.map((s, i) => (
-        <div key={i} className="step-row">
-          <input value={s} onChange={(e) => onChange(value.map((x, idx) => idx === i ? e.target.value : x))} placeholder={`Step ${i + 1}`} />
-          <button className="btn-sm" type="button" onClick={() => onChange(value.filter((_, idx) => idx !== i))}>Remove</button>
-        </div>
-      ))}
-      <button className="btn-sm" type="button" onClick={() => onChange([...value, ''])}><Icon name="plus" size={14} /> Add step</button>
-    </div>
-  );
-
   return (
     <div className="page">
       <div className="page-head">
@@ -749,6 +799,7 @@ function TeacherActivitiesTab({ accessToken }) {
             <div className="res-desc">{a.description}</div>
             <div className="res-actions">
               <button className="btn-sm" onClick={() => setSelected({ ...a, steps: a.steps || [] })}><Icon name="edit" size={13} /> Edit</button>
+              <button className="btn-sm" onClick={() => { setAssigning(a); setAssignChildId(children[0]?.id || ''); setShowAssign(true); }}><Icon name="users" size={13} /> Assign</button>
             </div>
           </div>
         ))}
@@ -817,6 +868,44 @@ function TeacherActivitiesTab({ accessToken }) {
       )}
 
       {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+
+      {showAssign && assigning && (
+        <div className="card" style={{ marginTop: 18 }}>
+          <div className="card-title-row">
+            <div className="card-title">Assign activity</div>
+            <div className="card-title-actions">
+              <button className="btn-sm" onClick={() => { setShowAssign(false); setAssigning(null); }}>Close</button>
+            </div>
+          </div>
+          <div className="li-sub" style={{ marginBottom: 10 }}>
+            Assign <strong>{assigning.title}</strong> to a child.
+          </div>
+          <div className="auth-field">
+            <label>Select child</label>
+            <select value={assignChildId} onChange={(e) => setAssignChildId(e.target.value)}>
+              {children.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
+            </select>
+          </div>
+          <div className="lesson-actions">
+            <button
+              className="btn-primary"
+              onClick={async () => {
+                try {
+                  await apiFetch('/api/assignments', { method: 'POST', accessToken, body: { childUserId: assignChildId, activityId: assigning.id } });
+                  showToast('Assigned');
+                  setShowAssign(false);
+                  setAssigning(null);
+                } catch (e) {
+                  showToast(e.message || 'Assign failed');
+                }
+              }}
+              disabled={!assignChildId}
+            >
+              <Icon name="check" size={16} /> Assign
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1261,13 +1350,14 @@ function FeedbackTab() {
 /* ─────────────────────────────────────────
    PARENT DASHBOARD
 ───────────────────────────────────────── */
-function ParentDashboard({ user, onLogout, ...notifProps }) {
+function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const [activityOpenTitle, setActivityOpenTitle] = useState(null);
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'activities', label: 'Activities', icon: 'calendar' },
     { id: 'progress', label: 'Progress Tracking', icon: 'chart' },
+    { id: 'assigned', label: 'Assigned', icon: 'check' },
     { id: 'resources', label: 'Resource Library', icon: 'book' },
     { id: 'messages', label: 'Messages', icon: 'message' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -1286,6 +1376,7 @@ function ParentDashboard({ user, onLogout, ...notifProps }) {
       )}
       {tab === 'activities' && <ActivitiesTab openActivityTitle={activityOpenTitle} onActivityOpened={() => setActivityOpenTitle(null)} />}
       {tab === 'progress' && <ProgressTab />}
+      {tab === 'assigned' && <ParentAssignedTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
       {tab === 'messages' && <MessagesTab />}
       {tab === 'settings' && <SettingsWorkspace user={user} />}
@@ -1347,6 +1438,83 @@ function ParentHome({ user, onGoActivities, onGoProgress, onGoResources, onGoMes
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ParentAssignedTab({ accessToken }) {
+  const [childEmail, setChildEmail] = useState('');
+  const [childPassword, setChildPassword] = useState('');
+  const [toast, setToast] = useState('');
+  const [assignments, setAssignments] = useState([]);
+
+  const showToast = (t) => {
+    setToast(t);
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(''), 1800);
+  };
+
+  const load = () => {
+    if (!accessToken) return;
+    apiFetch('/api/assignments/parent', { accessToken })
+      .then((d) => setAssignments(d.assignments || []))
+      .catch((e) => showToast(e.message || 'Failed to load assignments'));
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [accessToken]);
+
+  const link = async () => {
+    try {
+      await apiFetch('/api/assignments/parent/link-child', { method: 'POST', accessToken, body: { childEmail, childPassword } });
+      setChildEmail('');
+      setChildPassword('');
+      showToast('Child linked');
+      load();
+    } catch (e) {
+      showToast(e.message || 'Link failed');
+    }
+  };
+
+  return (
+    <div className="page">
+      <div className="page-head"><h1>Assigned activities</h1><p>See what your child has been assigned by the teacher.</p></div>
+
+      <div className="card">
+        <div className="card-title">Link your child account</div>
+        <div className="li-sub" style={{ marginBottom: 12 }}>
+          Enter your child’s login once to link. After that, assignments will appear here.
+        </div>
+        <div className="two-col" style={{ gap: 12 }}>
+          <div className="auth-field"><label>Child email</label><input value={childEmail} onChange={(e) => setChildEmail(e.target.value)} placeholder="child@example.com" /></div>
+          <div className="auth-field"><label>Child password</label><input value={childPassword} onChange={(e) => setChildPassword(e.target.value)} type="password" placeholder="Child password" /></div>
+        </div>
+        <div className="lesson-actions">
+          <button className="btn-primary" onClick={link} disabled={!childEmail.trim() || !childPassword.trim()}><Icon name="check" size={16} /> Link child</button>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Assignments</div>
+        {assignments.length === 0 ? (
+          <div className="li-sub">No assignments yet.</div>
+        ) : (
+          <div className="table-card" style={{ marginTop: 12 }}>
+            <div className="t-head" style={{ gridTemplateColumns: '1.5fr 2fr 1fr 1fr' }}>
+              <span>Child</span><span>Activity</span><span>Status</span><span>Assigned</span>
+            </div>
+            {assignments.map((a) => (
+              <div className="t-row" key={a.id} style={{ gridTemplateColumns: '1.5fr 2fr 1fr 1fr' }}>
+                <span className="t-name"><div className="t-av">{a.child.name.charAt(0)}</div>{a.child.name}</span>
+                <span>{a.activity.title}</span>
+                <span><Badge label={a.status} type={a.status === 'completed' ? 'green' : 'blue'} /></span>
+                <span className="t-muted">{new Date(a.assignedAt).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
     </div>
   );
 }
@@ -1568,6 +1736,7 @@ function ChildDashboard({ user, onLogout, accessToken }) {
   const [tab, setTab] = useState('play');
   const [done, setDone] = useState([]);
   const [active, setActive] = useState(null);
+  const [assignments, setAssignments] = useState([]);
   const [sound, setSound] = useState(true);
   const [bigText, setBigText] = useState(false);
   const [childPoints, setChildPoints] = useState(0);
@@ -1621,22 +1790,42 @@ function ChildDashboard({ user, onLogout, accessToken }) {
 
   const pts = childPoints || 0;
   const complete = (id) => { if (!done.includes(id)) setDone(p => [...p, id]); };
-  const open = (a) => { setActive(a); setTab('activity'); };
-  const markDone = (id) => {
-    if (accessToken) {
-      apiFetch('/api/progress/complete', { method: 'POST', accessToken, body: { activityId: id, pointsAwarded: 10 } })
-        .then((data) => {
-          const ids = data?.progress?.completedActivityIds || [];
-          const ptsNext = data?.progress?.points || 0;
-          setDone(Array.isArray(ids) ? ids : []);
-          setChildPoints(Number.isFinite(ptsNext) ? ptsNext : 0);
-        })
-        .catch(() => {
-          // fallback to local if backend fails
-          complete(id);
-          setChildPoints(p => p + (done.includes(id) ? 0 : 10));
-        });
-    } else {
+  const open = (a, assignmentId) => { setActive({ ...a, assignmentId: assignmentId || null }); setTab('activity'); };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accessToken) return () => { cancelled = true; };
+    apiFetch('/api/assignments/mine', { accessToken })
+      .then((data) => {
+        if (cancelled) return;
+        setAssignments(Array.isArray(data?.assignments) ? data.assignments : []);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  const markDone = async (id, assignmentId) => {
+    if (!accessToken) {
+      complete(id);
+      setChildPoints(p => p + (done.includes(id) ? 0 : 10));
+      setActive(null);
+      setTab('play');
+      return;
+    }
+
+    try {
+      if (assignmentId) {
+        await apiFetch(`/api/assignments/${assignmentId}/complete`, { method: 'POST', accessToken });
+      }
+      const data = await apiFetch('/api/progress/complete', { method: 'POST', accessToken, body: { activityId: id, pointsAwarded: 10 } });
+      const ids = data?.progress?.completedActivityIds || [];
+      const ptsNext = data?.progress?.points || 0;
+      setDone(Array.isArray(ids) ? ids : []);
+      setChildPoints(Number.isFinite(ptsNext) ? ptsNext : 0);
+      // refresh assignments list (status -> completed)
+      apiFetch('/api/assignments/mine', { accessToken }).then(d => setAssignments(Array.isArray(d?.assignments) ? d.assignments : [])).catch(() => {});
+    } catch {
+      // fallback to local if backend fails
       complete(id);
       setChildPoints(p => p + (done.includes(id) ? 0 : 10));
     }
@@ -1698,7 +1887,7 @@ function ChildDashboard({ user, onLogout, accessToken }) {
                 ]).map((s, i) => <li key={i}>{s}</li>)}
               </ol>
               <div className="lesson-actions">
-                <button className="btn-complete" onClick={() => markDone(active.id)}>
+                <button className="btn-complete" onClick={() => markDone(active.id, active.assignmentId)}>
                   <span className="btn-complete-dot" aria-hidden><Icon name="check" size={12} color="#fff" /></span>
                   Mark done (+10 pts)
                 </button>
@@ -1709,15 +1898,47 @@ function ChildDashboard({ user, onLogout, accessToken }) {
       )}
       {tab === 'play' && (
         <>
+          {assignments.filter(a => a.status !== 'completed').length > 0 && (
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div className="card-title">Assigned by your teacher</div>
+              <div className="res-grid" style={{ marginTop: 12 }}>
+                {assignments.filter(a => a.status !== 'completed').slice(0, 3).map(a => (
+                  <div key={a.id} className="res-card" style={{ background: 'var(--bg-card)' }}>
+                    <div className="res-top"><Badge label="Assigned" type="blue" /></div>
+                    <div className="res-title">{a.activity.title}</div>
+                    <div className="res-desc">{a.activity.description}</div>
+                    <div className="res-actions">
+                      <button className="btn-sm" onClick={() => open({
+                        id: a.activity.id,
+                        title: a.activity.title,
+                        desc: a.activity.description,
+                        icon: a.activity.icon,
+                        color: a.activity.color,
+                        steps: a.activity.steps || [],
+                      }, a.id)}>
+                        Let's Go!
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="child-grid">
             {activities.map(a => (
               <div key={a.id} className={`child-card ${done.includes(a.id) ? 'child-done' : ''}`} style={{ '--acc': a.color }}>
                 <div className="cc-icon"><Icon name={a.icon} size={36} /></div>
                 <div className="cc-title">{a.title}</div>
                 <div className="cc-desc">{a.desc}</div>
+                {assignments.some(x => x.activity?.id === a.id && x.status !== 'completed') && (
+                  <div className="child-activity-meta"><Badge label="Assigned" type="blue" /></div>
+                )}
                 {done.includes(a.id)
                   ? <div className="cc-done-label"><Icon name="check" size={14} /> Done!</div>
-                  : <button className="cc-btn" onClick={() => open(a)}>Let's Go!</button>}
+                  : <button className="cc-btn" onClick={() => {
+                    const asg = assignments.find(x => x.activity?.id === a.id && x.status !== 'completed');
+                    open(a, asg?.id);
+                  }}>Let's Go!</button>}
               </div>
             ))}
           </div>
