@@ -8,6 +8,12 @@ const ChildSchema = new mongoose.Schema({
   notes: { type: String, trim: true },
 }, { _id: false });
 
+const ChildProgressSchema = new mongoose.Schema({
+  completedActivityIds: { type: [String], default: [] },
+  points: { type: Number, default: 0 },
+  lastCompletedAt: { type: Date, default: null },
+}, { _id: false });
+
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true },
@@ -15,6 +21,7 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['teacher', 'parent', 'child', 'admin'], required: true },
   status: { type: String, default: 'Active' },
   children: { type: [ChildSchema], default: [] },
+  childProgress: { type: ChildProgressSchema, default: () => ({}) },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);

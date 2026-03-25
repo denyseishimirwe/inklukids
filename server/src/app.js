@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 
 const { authRouter } = require('./routes/auth');
 const { activitiesRouter } = require('./routes/activities');
+const { progressRouter } = require('./routes/progress');
 
 function createApp({ clientOrigin, env }) {
   const app = express();
@@ -23,6 +24,7 @@ function createApp({ clientOrigin, env }) {
 
   app.use('/api/auth', authRouter);
   app.use('/api/activities', activitiesRouter);
+  app.use('/api/progress', progressRouter);
 
   return app;
 }

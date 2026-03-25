@@ -1399,6 +1399,7 @@ function ChildDashboard({ user, onLogout, accessToken }) {
   const [active, setActive] = useState(null);
   const [sound, setSound] = useState(true);
   const [bigText, setBigText] = useState(false);
+  const [childPoints, setChildPoints] = useState(0);
   const [activities, setActivities] = useState([
     { id: 'seed-1', title: 'Color Match', desc: 'Match the colors!', icon: 'puzzle', color: '#fef9c3' },
     { id: 'seed-2', title: 'How Do I Feel?', desc: 'Name your feelings', icon: 'smile', color: '#dcfce7' },
@@ -1429,11 +1430,45 @@ function ChildDashboard({ user, onLogout, accessToken }) {
       })
     return () => { cancelled = true; };
   }, [accessToken]);
-  const pts = done.length * 10;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accessToken) return () => { cancelled = true; };
+    apiFetch('/api/progress/me', { accessToken })
+      .then((data) => {
+        if (cancelled) return;
+        const ids = data?.progress?.completedActivityIds || [];
+        const pts = data?.progress?.points || 0;
+        setDone(Array.isArray(ids) ? ids : []);
+        setChildPoints(Number.isFinite(pts) ? pts : 0);
+      })
+      .catch(() => {
+        // keep local demo progress if backend not available
+      });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  const pts = childPoints || 0;
   const complete = (id) => { if (!done.includes(id)) setDone(p => [...p, id]); };
   const open = (a) => { setActive(a); setTab('activity'); };
   const markDone = (id) => {
-    complete(id);
+    if (accessToken) {
+      apiFetch('/api/progress/complete', { method: 'POST', accessToken, body: { activityId: id, pointsAwarded: 10 } })
+        .then((data) => {
+          const ids = data?.progress?.completedActivityIds || [];
+          const ptsNext = data?.progress?.points || 0;
+          setDone(Array.isArray(ids) ? ids : []);
+          setChildPoints(Number.isFinite(ptsNext) ? ptsNext : 0);
+        })
+        .catch(() => {
+          // fallback to local if backend fails
+          complete(id);
+          setChildPoints(p => p + (done.includes(id) ? 0 : 10));
+        });
+    } else {
+      complete(id);
+      setChildPoints(p => p + (done.includes(id) ? 0 : 10));
+    }
     setActive(null);
     setTab('play');
     if (sound) {
@@ -1582,7 +1617,19 @@ function ChildDashboard({ user, onLogout, accessToken }) {
               <input type="checkbox" checked={bigText} onChange={() => setBigText(p => !p)} />
             </label>
             <div className="lesson-actions">
-              <button className="btn-sm" onClick={() => { setDone([]); setActive(null); }}>Reset progress</button>
+              <button
+                className="btn-sm"
+                onClick={() => {
+                  setDone([]);
+                  setChildPoints(0);
+                  setActive(null);
+                  if (accessToken) {
+                    apiFetch('/api/progress/reset', { method: 'POST', accessToken }).catch(() => {});
+                  }
+                }}
+              >
+                Reset progress
+              </button>
             </div>
           </div>
         </div>
