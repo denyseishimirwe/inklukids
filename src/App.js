@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import lpHero from './assets/lp-diverse/hero.jpg';
 import lpWhy from './assets/lp-diverse/why.jpg';
@@ -783,11 +783,11 @@ function TeacherActivitiesTab({ accessToken }) {
   const [draft, setDraft] = useState({ title: '', description: '', icon: 'puzzle', color: '#dbeafe', steps: [''] });
   const [toast, setToast] = useState('');
 
-  const showToast = (t) => {
+  const showToast = useCallback((t) => {
     setToast(t);
     window.clearTimeout(showToast._t);
     showToast._t = window.setTimeout(() => setToast(''), 1800);
-  };
+  }, []);
 
   const load = () => apiFetch('/api/activities/mine', { accessToken }).then(d => setList(d.activities || [])).catch((e) => showToast(e.message || 'Failed to load activities'));
   const loadChildren = () => apiFetch('/api/users/children', { accessToken }).then(d => setChildren(d.children || [])).catch(() => {});
@@ -797,7 +797,7 @@ function TeacherActivitiesTab({ accessToken }) {
     load();
     loadChildren();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
+  }, [accessToken, showToast]);
 
   const visible = list.filter(a => {
     const q = query.trim().toLowerCase();
@@ -1729,20 +1729,20 @@ function ParentAssignedTab({ accessToken }) {
   const [toast, setToast] = useState('');
   const [assignments, setAssignments] = useState([]);
 
-  const showToast = (t) => {
+  const showToast = useCallback((t) => {
     setToast(t);
     window.clearTimeout(showToast._t);
     showToast._t = window.setTimeout(() => setToast(''), 1800);
-  };
+  }, []);
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!accessToken) return;
     apiFetch('/api/assignments/parent', { accessToken })
       .then((d) => setAssignments(d.assignments || []))
       .catch((e) => showToast(e.message || 'Failed to load assignments'));
-  };
+  }, [accessToken, showToast]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [accessToken]);
+  useEffect(() => { load(); }, [load]);
 
   const link = async () => {
     try {
