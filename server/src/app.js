@@ -10,6 +10,7 @@ const { assignmentsRouter } = require('./routes/assignments');
 const { messagesRouter } = require('./routes/messages');
 const { trainingAssignmentsRouter } = require('./routes/trainingAssignments');
 const { announcementsRouter } = require('./routes/announcements');
+const { supportRouter } = require('./routes/support');
 
 function createApp({ clientOrigin, env }) {
   const app = express();
@@ -35,6 +36,7 @@ function createApp({ clientOrigin, env }) {
   app.use('/api/messages', messagesRouter);
   app.use('/api/training-assignments', trainingAssignmentsRouter);
   app.use('/api/announcements', announcementsRouter);
+  app.use('/api/support', supportRouter);
 
   return app;
 }

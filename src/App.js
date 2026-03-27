@@ -1054,6 +1054,21 @@ function TeacherDashboard({ user, onLogout, accessToken, ...notifProps }) {
 }
 
 function TeacherHome({ user, accessToken, onOpenTraining }) {
+  const [supportRequests, setSupportRequests] = useState([]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    apiFetch('/api/support/teacher', { accessToken })
+      .then((d) => {
+        if (!cancelled) setSupportRequests(d.requests || []);
+      })
+      .catch(() => {
+        if (!cancelled) setSupportRequests([]);
+      });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
   return (
     <div className="page">
       <div className="page-head">
@@ -1099,6 +1114,23 @@ function TeacherHome({ user, accessToken, onOpenTraining }) {
         </div>
       </div>
       <AnnouncementsPanel user={user} accessToken={accessToken} />
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Children asking for help</div>
+        {supportRequests.length === 0 ? (
+          <div className="li-sub">No recent help requests from children.</div>
+        ) : (
+          supportRequests.slice(0, 5).map((r) => (
+            <div key={r.id} className="list-item">
+              <div className="li-av">{(r.childName || 'C').charAt(0)}</div>
+              <div className="li-body">
+                <div className="li-title">{r.childName}</div>
+                <div className="li-sub">{r.message}</div>
+              </div>
+              <Badge label={r.category} type={r.status === 'seen' ? 'gray' : 'amber'} />
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -2137,6 +2169,42 @@ function ParentTrainingTab({ accessToken }) {
   );
 }
 
+function ChildAnnouncementsPanel({ accessToken }) {
+  const [list, setList] = useState([]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    apiFetch('/api/announcements', { accessToken })
+      .then((d) => {
+        if (!cancelled) setList(d.announcements || []);
+      })
+      .catch(() => {
+        if (!cancelled) setList([]);
+      });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  return (
+    <div className="card" style={{ marginTop: 14 }}>
+      <div className="card-title">Announcements</div>
+      {list.length === 0 ? (
+        <div className="li-sub">No announcements yet.</div>
+      ) : (
+        list.slice(0, 3).map((a) => (
+          <div className="list-item" key={a.id}>
+            <div className="li-body">
+              <div className="li-title">{a.title}</div>
+              <div className="li-sub">{a.body}</div>
+            </div>
+            <span className="li-sub">{new Date(a.createdAt).toLocaleDateString()}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 function ParentAssignedTab({ accessToken }) {
   const [childEmail, setChildEmail] = useState('');
   const [childPassword, setChildPassword] = useState('');
@@ -2424,14 +2492,130 @@ function SettingsWorkspace({ user }) {
   );
 }
 
+function ChildMiniActivity({ activity, onSuccess }) {
+  const [state, setState] = useState({});
+  const title = String(activity?.title || '').toLowerCase();
+
+  if (title.includes('color')) {
+    const target = 'green';
+    const options = ['red', 'blue', 'green', 'yellow'];
+    return (
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-title">Mini game: Color Match</div>
+        <div className="li-sub">Tap the color: <strong>{target.toUpperCase()}</strong></div>
+        <div className="res-actions" style={{ marginTop: 10 }}>
+          {options.map((c) => (
+            <button
+              key={c}
+              className="btn-sm"
+              style={{ background: c, color: c === 'yellow' ? '#111' : '#fff', borderColor: 'transparent' }}
+              onClick={() => {
+                const ok = c === target;
+                setState({ ok });
+                if (ok) onSuccess?.();
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        {state.ok === true && <div className="li-sub" style={{ marginTop: 8 }}>Great! You matched the right color.</div>}
+        {state.ok === false && <div className="li-sub" style={{ marginTop: 8 }}>Try again - you can do it.</div>}
+      </div>
+    );
+  }
+
+  if (title.includes('feel')) {
+    const target = 'Happy';
+    const options = ['Happy', 'Sad', 'Tired', 'Excited'];
+    return (
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-title">Mini game: How do I feel?</div>
+        <div className="li-sub">Choose the feeling shown in class activity: <strong>{target}</strong></div>
+        <div className="res-actions" style={{ marginTop: 10 }}>
+          {options.map((o) => (
+            <button key={o} className="btn-sm" onClick={() => {
+              const ok = o === target;
+              setState({ ok });
+              if (ok) onSuccess?.();
+            }}>{o}</button>
+          ))}
+        </div>
+        {state.ok === true && <div className="li-sub" style={{ marginTop: 8 }}>Nice choice!</div>}
+      </div>
+    );
+  }
+
+  if (title.includes('count')) {
+    const target = 6;
+    const options = [4, 5, 6, 7];
+    return (
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-title">Mini game: Count with me</div>
+        <div className="li-sub">How many stars do you see? {'⭐'.repeat(target)}</div>
+        <div className="res-actions" style={{ marginTop: 10 }}>
+          {options.map((o) => (
+            <button key={o} className="btn-sm" onClick={() => {
+              const ok = o === target;
+              setState({ ok });
+              if (ok) onSuccess?.();
+            }}>{o}</button>
+          ))}
+        </div>
+        {state.ok === true && <div className="li-sub" style={{ marginTop: 8 }}>Correct! Great counting.</div>}
+      </div>
+    );
+  }
+
+  if (title.includes('story')) {
+    return (
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-title">Mini activity: Story time</div>
+        <div className="li-sub">Read the short sentence and answer:</div>
+        <div className="res-desc" style={{ marginTop: 8 }}>"Amani shared her toy with a friend."</div>
+        <div className="res-actions" style={{ marginTop: 10 }}>
+          <button className="btn-sm" onClick={() => { setState({ ok: true }); onSuccess?.(); }}>Was that kind?</button>
+          <button className="btn-sm" onClick={() => setState({ ok: false })}>Was that unkind?</button>
+        </div>
+        {state.ok === true && <div className="li-sub" style={{ marginTop: 8 }}>Yes! Sharing is kind.</div>}
+      </div>
+    );
+  }
+
+  if (title.includes('move')) {
+    return (
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="card-title">Mini activity: Move your body</div>
+        <div className="li-sub">Do each movement once, then tap done.</div>
+        <ol className="lesson-steps">
+          <li>Stretch up high</li>
+          <li>Touch your toes</li>
+          <li>Take 3 deep breaths</li>
+        </ol>
+        <div className="lesson-actions">
+          <button className="btn-sm" onClick={() => { setState({ ok: true }); onSuccess?.(); }}>
+            I did it
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 /* ─────────────────────────────────────────
    CHILD DASHBOARD
 ───────────────────────────────────────── */
 function ChildDashboard({ user, onLogout, accessToken }) {
-  const [tab, setTab] = useState('play');
+  const [tab, setTab] = useState('dashboard');
   const [done, setDone] = useState([]);
   const [active, setActive] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [supportCategory, setSupportCategory] = useState('learning');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportList, setSupportList] = useState([]);
+  const [supportToast, setSupportToast] = useState('');
   const [sound, setSound] = useState(true);
   const [bigText, setBigText] = useState(false);
   const [childPoints, setChildPoints] = useState(0);
@@ -2531,31 +2715,50 @@ function ChildDashboard({ user, onLogout, accessToken }) {
     }
   };
 
+  const childNav = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'home' },
+    { id: 'activities', label: 'Activities', icon: 'calendar' },
+    { id: 'assigned', label: 'Assigned', icon: 'check' },
+    { id: 'help', label: 'Ask Teacher', icon: 'message' },
+    { id: 'progress', label: 'Progress', icon: 'chart' },
+    { id: 'awards', label: 'Awards', icon: 'star' },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
+  ];
+
+  const showSupportToast = useCallback((t) => {
+    setSupportToast(t);
+    window.clearTimeout(showSupportToast._t);
+    showSupportToast._t = window.setTimeout(() => setSupportToast(''), 1800);
+  }, []);
+
+  const loadSupport = useCallback(() => {
+    if (!accessToken) return;
+    apiFetch('/api/support/mine', { accessToken })
+      .then((d) => setSupportList(d.requests || []))
+      .catch(() => setSupportList([]));
+  }, [accessToken]);
+
+  useEffect(() => { loadSupport(); }, [loadSupport]);
+
   return (
     <div className={`child-app ${bigText ? 'child-big' : ''}`}>
-      <header className="child-topbar">
-        <div className="child-brand">InkluKids</div>
-        <div className="child-top-right">
-          <div className="pts-pill"><Icon name="star" size={15} color="#f59e0b" /> {pts} pts</div>
-          <button className="child-logout-btn" onClick={onLogout}>Logout</button>
-        </div>
-      </header>
-      <div className="child-hero">
-        <h1>Hi, {user?.name?.split(' ')[0]}!</h1>
-        <p>What would you like to do today?</p>
-      </div>
-      <div className="child-nav">
-        {['play', 'progress', 'awards', 'settings'].map(t => (
-          <button key={t} className={`child-nav-btn ${tab === t ? 'active' : ''}`} onClick={() => { setTab(t); setActive(null); }}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+      <Shell
+        user={user}
+        onLogout={onLogout}
+        notifications={[]}
+        unreadCount={0}
+        markRead={() => {}}
+        markAllRead={() => {}}
+        onOpenNotification={() => {}}
+        navItems={childNav}
+        activeTab={tab === 'activity' ? 'activities' : tab}
+        setActiveTab={(next) => { setTab(next); if (next !== 'activity') setActive(null); }}
+      >
       {tab === 'activity' && active && (
         <div className="child-activity-page">
           <div className="child-activity-wrap">
             <div className="child-activity-head">
-              <button className="btn-sm" onClick={() => { setTab('play'); setActive(null); }}>
+              <button className="btn-sm" onClick={() => { setTab('activities'); setActive(null); }}>
                 <Icon name="arrow_left" size={14} /> Back
               </button>
               <div className="child-activity-title">
@@ -2573,6 +2776,7 @@ function ChildDashboard({ user, onLogout, accessToken }) {
 
             <div className="card">
               <div className="card-title">Steps</div>
+              <ChildMiniActivity activity={active} onSuccess={() => {}} />
               <ol className="lesson-steps">
                 {(active.steps?.length ? active.steps : [
                   'Get ready and look at the pictures.',
@@ -2591,40 +2795,36 @@ function ChildDashboard({ user, onLogout, accessToken }) {
           </div>
         </div>
       )}
-      {tab === 'play' && (
+      {tab === 'dashboard' && (
+        <div className="child-prog-view">
+          <div className="page-head">
+            <h1>Hi, {user?.name?.split(' ')[0]}!</h1>
+            <p>Welcome back. Keep going and collect points for each activity you finish.</p>
+          </div>
+          <div className="stats-row">
+            <StatCard label="Points" value={pts} icon="star" color="var(--amber-tint)" />
+            <StatCard label="Completed" value={done.length} icon="check" color="var(--green-tint)" />
+            <StatCard label="Remaining" value={Math.max(activities.length - done.length, 0)} icon="calendar" color="var(--blue-tint)" />
+            <StatCard label="Assigned" value={assignments.filter(a => a.status !== 'completed').length} icon="message" color="var(--peach-tint)" />
+          </div>
+          <ChildAnnouncementsPanel accessToken={accessToken} />
+        </div>
+      )}
+      {tab === 'activities' && (
         <>
-          {assignments.filter(a => a.status !== 'completed').length > 0 && (
-            <div className="card" style={{ marginBottom: 14 }}>
-              <div className="card-title">Assigned by your teacher</div>
-              <div className="res-grid" style={{ marginTop: 12 }}>
-                {assignments.filter(a => a.status !== 'completed').slice(0, 3).map(a => (
-                  <div key={a.id} className="res-card" style={{ background: 'var(--bg-card)' }}>
-                    <div className="res-top"><Badge label="Assigned" type="blue" /></div>
-                    <div className="res-title">{a.activity.title}</div>
-                    <div className="res-desc">{a.activity.description}</div>
-                    <div className="res-actions">
-                      <button className="btn-sm" onClick={() => open({
-                        id: a.activity.id,
-                        title: a.activity.title,
-                        desc: a.activity.description,
-                        icon: a.activity.icon,
-                        color: a.activity.color,
-                        steps: a.activity.steps || [],
-                      }, a.id)}>
-                        Let's Go!
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="page">
+            <div className="page-head"><h1>Activities</h1><p>Choose an activity and work through the steps.</p></div>
+          </div>
           <div className="child-grid">
             {activities.map(a => (
               <div key={a.id} className={`child-card ${done.includes(a.id) ? 'child-done' : ''}`} style={{ '--acc': a.color }}>
                 <div className="cc-icon"><Icon name={a.icon} size={36} /></div>
                 <div className="cc-title">{a.title}</div>
                 <div className="cc-desc">{a.desc}</div>
+                <div className="child-activity-meta">
+                  <Badge label={`${Math.max(1, (a.steps || []).length)} steps`} type="gray" />
+                  <span className="li-sub">{done.includes(a.id) ? 'Completed' : 'Ready to start'}</span>
+                </div>
                 {assignments.some(x => x.activity?.id === a.id && x.status !== 'completed') && (
                   <div className="child-activity-meta"><Badge label="Assigned" type="blue" /></div>
                 )}
@@ -2639,6 +2839,98 @@ function ChildDashboard({ user, onLogout, accessToken }) {
           </div>
 
         </>
+      )}
+      {tab === 'assigned' && (
+        <div className="child-prog-view">
+          <div className="card">
+            <div className="card-title">Assigned by your teacher</div>
+            {assignments.length === 0 ? (
+              <div className="li-sub">No assigned activities yet.</div>
+            ) : (
+              <div className="res-grid" style={{ marginTop: 12 }}>
+                {assignments.map((a) => (
+                  <div key={a.id} className="res-card" style={{ background: 'var(--bg-card)' }}>
+                    <div className="res-top">
+                      <Badge label={a.status === 'completed' ? 'Completed' : 'Assigned'} type={a.status === 'completed' ? 'green' : 'blue'} />
+                      <span className="res-cat">{new Date(a.assignedAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="res-title">{a.activity.title}</div>
+                    <div className="res-desc">{a.activity.description}</div>
+                    {a.status !== 'completed' && (
+                      <div className="res-actions">
+                        <button className="btn-sm" onClick={() => open({
+                          id: a.activity.id,
+                          title: a.activity.title,
+                          desc: a.activity.description,
+                          icon: a.activity.icon,
+                          color: a.activity.color,
+                          steps: a.activity.steps || [],
+                        }, a.id)}>
+                          Open activity
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {tab === 'help' && (
+        <div className="child-prog-view">
+          <div className="card">
+            <div className="card-title">Ask your teacher for help</div>
+            <div className="auth-field">
+              <label>What is bothering you?</label>
+              <select value={supportCategory} onChange={(e) => setSupportCategory(e.target.value)}>
+                <option value="learning">Learning</option>
+                <option value="social">Social/friends</option>
+                <option value="feelings">Feelings</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="auth-field">
+              <label>Message</label>
+              <textarea rows={4} value={supportMessage} onChange={(e) => setSupportMessage(e.target.value)} placeholder="Tell your teacher what is hard for you today..." />
+            </div>
+            <div className="lesson-actions">
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  if (!supportMessage.trim() || !accessToken) return;
+                  try {
+                    await apiFetch('/api/support/child', { method: 'POST', accessToken, body: { category: supportCategory, message: supportMessage.trim() } });
+                    setSupportMessage('');
+                    showSupportToast('Sent to your teacher');
+                    loadSupport();
+                  } catch (e) {
+                    showSupportToast(e.message || 'Could not send');
+                  }
+                }}
+                disabled={!supportMessage.trim() || !accessToken}
+              >
+                <Icon name="send" size={16} /> Send
+              </button>
+            </div>
+          </div>
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="card-title">My recent help requests</div>
+            {supportList.length === 0 ? (
+              <div className="li-sub">No requests yet.</div>
+            ) : (
+              supportList.slice(0, 6).map((r) => (
+                <div className="list-item" key={r.id}>
+                  <div className="li-body">
+                    <div className="li-title">{r.message}</div>
+                    <div className="li-sub">{new Date(r.createdAt).toLocaleString()}</div>
+                  </div>
+                  <Badge label={r.status === 'seen' ? 'Seen' : 'New'} type={r.status === 'seen' ? 'gray' : 'amber'} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       )}
       {tab === 'progress' && (
         <div className="child-prog-view">
@@ -2721,6 +3013,8 @@ function ChildDashboard({ user, onLogout, accessToken }) {
           </div>
         </div>
       )}
+      {supportToast && <div className="toast" role="status" aria-live="polite">{supportToast}</div>}
+      </Shell>
     </div>
   );
 }
