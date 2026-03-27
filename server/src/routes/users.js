@@ -19,5 +19,21 @@ router.get('/children', ensureRole('teacher'), async (req, res) => {
   });
 });
 
+// Admin: list teachers for training assignments
+router.get('/teachers', ensureRole('admin'), async (req, res) => {
+  const teachers = await User.find({ role: 'teacher', status: 'Active' }).sort({ createdAt: -1 }).select('_id name email').lean();
+  return res.json({
+    teachers: teachers.map(u => ({ id: String(u._id), name: u.name, email: u.email })),
+  });
+});
+
+// Teacher: list parents for training assignments
+router.get('/parents', ensureRole('teacher'), async (req, res) => {
+  const parents = await User.find({ role: 'parent', status: 'Active' }).sort({ createdAt: -1 }).select('_id name email').lean();
+  return res.json({
+    parents: parents.map(u => ({ id: String(u._id), name: u.name, email: u.email })),
+  });
+});
+
 module.exports = { usersRouter: router };
 

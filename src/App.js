@@ -91,17 +91,14 @@ function App() {
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState(SEED_USERS);
   const [accessToken, setAccessToken] = useState(null);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: 'New training module: Sensory Strategies', time: '2 hours ago', read: false },
-    { id: 2, text: 'Amani completed 3 activities this week', time: '5 hours ago', read: false },
-    { id: 3, text: 'New message from Ms. Uwase', time: 'Yesterday', read: true },
-    { id: 4, text: 'Parent guidelines updated', time: '2 days ago', read: true },
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [messageNotifs, setMessageNotifs] = useState([]);
+  const [announcementNotifs, setAnnouncementNotifs] = useState([]);
   const [messageUnreadTotal, setMessageUnreadTotal] = useState(0);
+  const [notifNav, setNotifNav] = useState(null);
 
-  const allNotifs = [...messageNotifs, ...notifications];
-  const unreadCount = notifications.filter(n => !n.read).length + messageUnreadTotal;
+  const allNotifs = [...messageNotifs, ...announcementNotifs, ...notifications];
+  const unreadCount = notifications.filter(n => !n.read).length + messageUnreadTotal + announcementNotifs.filter(n => !n.read).length;
   const markRead = (id) => {
     setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
     setMessageNotifs((p) => {
@@ -109,6 +106,7 @@ function App() {
       setMessageUnreadTotal(next.reduce((sum, n) => sum + (n.read ? 0 : (n.unreadCount || 0)), 0));
       return next;
     });
+    setAnnouncementNotifs((p) => p.map(n => n.id === id ? { ...n, read: true } : n));
   };
   const markAllRead = () => {
     setNotifications(p => p.map(n => ({ ...n, read: true })));
@@ -117,6 +115,7 @@ function App() {
       setMessageUnreadTotal(0);
       return next;
     });
+    setAnnouncementNotifs(p => p.map(n => ({ ...n, read: true })));
   };
 
   // Try refreshing access token on boot (uses refresh cookie if present)
@@ -191,7 +190,51 @@ function App() {
     };
   }, [accessToken, user?.role]);
 
-  const notifProps = { notifications: allNotifs, unreadCount, markRead, markAllRead };
+  useEffect(() => {
+    if (!accessToken || !user?.role || !['teacher', 'parent', 'admin'].includes(user.role)) {
+      setAnnouncementNotifs([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await apiFetch('/api/announcements', { accessToken });
+        if (cancelled) return;
+        const items = (data?.announcements || []).slice(0, 8);
+        setAnnouncementNotifs((prev) => {
+          const prevReadMap = new Map(prev.map(n => [n.id, !!n.read]));
+          return items.map((a) => ({
+            id: `ann-${a.id}`,
+            text: `Announcement: ${a.title}`,
+            time: a.createdAt ? new Date(a.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Now',
+            read: prevReadMap.has(`ann-${a.id}`) ? !!prevReadMap.get(`ann-${a.id}`) : false,
+            targetTab: 'announcements',
+          }));
+        });
+      } catch {
+        if (!cancelled) setAnnouncementNotifs([]);
+      }
+    };
+    load();
+    const interval = window.setInterval(load, 6000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [accessToken, user?.role]);
+
+  const onOpenNotification = (n) => {
+    if (!n) return;
+    const rawTab = n.targetTab || (String(n.id || '').startsWith('msg-') ? 'messages' : null);
+    const mappedTab = rawTab === 'announcements' && user?.role === 'parent' ? 'home' : rawTab;
+    setNotifNav({
+      tab: mappedTab,
+      userId: String(n.id || '').startsWith('msg-') ? String(n.id).replace(/^msg-/, '') : null,
+      key: Date.now(),
+    });
+  };
+
+  const notifProps = { notifications: allNotifs, unreadCount, markRead, markAllRead, onOpenNotification, notifNav };
 
   if (page === 'home') return <LandingPage go={setPage} />;
   if (page === 'login') return <AuthPage mode="login" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
@@ -616,7 +659,7 @@ function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
 /* ─────────────────────────────────────────
    NOTIFICATION PANEL
 ───────────────────────────────────────── */
-function NotifPanel({ notifications, markRead, markAllRead, onClose }) {
+function NotifPanel({ notifications, markRead, markAllRead, onOpenNotification, onClose }) {
   return (
     <div className="notif-panel">
       <div className="notif-header">
@@ -624,7 +667,7 @@ function NotifPanel({ notifications, markRead, markAllRead, onClose }) {
         <button onClick={markAllRead}>Mark all read</button>
       </div>
       {notifications.map(n => (
-        <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`} onClick={() => { markRead(n.id); onClose(); }}>
+        <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`} onClick={() => { markRead(n.id); onOpenNotification?.(n); onClose(); }}>
           <div className="notif-dot" style={{ visibility: n.read ? 'hidden' : 'visible' }} />
           <div>
             <div className="notif-text">{n.text}</div>
@@ -639,7 +682,7 @@ function NotifPanel({ notifications, markRead, markAllRead, onClose }) {
 /* ─────────────────────────────────────────
    DASHBOARD SHELL
 ───────────────────────────────────────── */
-function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRead, navItems, activeTab, setActiveTab, children }) {
+function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRead, onOpenNotification, navItems, activeTab, setActiveTab, children }) {
   const [showNotif, setShowNotif] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
@@ -687,7 +730,7 @@ function Shell({ user, onLogout, notifications, unreadCount, markRead, markAllRe
                 <Icon name="bell" size={19} />
                 {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
               </button>
-              {showNotif && <NotifPanel notifications={notifications} markRead={markRead} markAllRead={markAllRead} onClose={() => setShowNotif(false)} />}
+              {showNotif && <NotifPanel notifications={notifications} markRead={markRead} markAllRead={markAllRead} onOpenNotification={onOpenNotification} onClose={() => setShowNotif(false)} />}
             </div>
             <div className="topbar-user-wrap" ref={userMenuRef}>
               <button
@@ -971,34 +1014,46 @@ function TeacherActivitiesTab({ accessToken }) {
 function TeacherDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const [trainingOpenTitle, setTrainingOpenTitle] = useState(null);
+  const [messageOpenUserId, setMessageOpenUserId] = useState('');
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'training', label: 'Training Modules', icon: 'graduation' },
+    { id: 'training-assign', label: 'Parent Training', icon: 'book' },
     { id: 'students', label: 'Progress Tracking', icon: 'chart' },
     { id: 'activities', label: 'Activities', icon: 'calendar' },
     { id: 'resources', label: 'Resources', icon: 'book' },
     { id: 'messages', label: 'Messages', icon: 'message' },
+    { id: 'announcements', label: 'Announcements', icon: 'bell' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
+  useEffect(() => {
+    if (!notifProps?.notifNav?.key) return;
+    if (notifProps.notifNav.tab) setTab(notifProps.notifNav.tab);
+    if (notifProps.notifNav.userId) setMessageOpenUserId(notifProps.notifNav.userId);
+  }, [notifProps?.notifNav]);
+
   return (
     <Shell user={user} onLogout={onLogout} {...notifProps} navItems={nav} activeTab={tab} setActiveTab={setTab}>
       {tab === 'home' && (
         <TeacherHome
           user={user}
+          accessToken={accessToken}
           onOpenTraining={(title) => { setTrainingOpenTitle(title); setTab('training'); }}
         />
       )}
-      {tab === 'training' && <TrainingTab openModuleTitle={trainingOpenTitle} onModuleOpened={() => setTrainingOpenTitle(null)} />}
+      {tab === 'training' && <TrainingTab openModuleTitle={trainingOpenTitle} onModuleOpened={() => setTrainingOpenTitle(null)} user={user} accessToken={accessToken} />}
+      {tab === 'training-assign' && <TrainingAssignmentsTab actorRole="teacher" accessToken={accessToken} />}
       {tab === 'students' && <StudentsTab />}
       {tab === 'activities' && <TeacherActivitiesTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
-      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} />}
+      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} preferredUserId={messageOpenUserId} />}
+      {tab === 'announcements' && <AnnouncementsWorkspace user={user} accessToken={accessToken} />}
       {tab === 'settings' && <SettingsWorkspace user={user} />}
     </Shell>
   );
 }
 
-function TeacherHome({ user, onOpenTraining }) {
+function TeacherHome({ user, accessToken, onOpenTraining }) {
   return (
     <div className="page">
       <div className="page-head">
@@ -1043,13 +1098,155 @@ function TeacherHome({ user, onOpenTraining }) {
           ))}
         </div>
       </div>
+      <AnnouncementsPanel user={user} accessToken={accessToken} />
     </div>
   );
 }
 
-function TrainingTab({ openModuleTitle, onModuleOpened }) {
+function AnnouncementsPanel({ user, accessToken }) {
+  const [list, setList] = useState([]);
+  const canCreate = user?.role === 'teacher' || user?.role === 'admin';
+
+  const load = useCallback((token) => {
+    if (!token) return;
+    apiFetch('/api/announcements', { accessToken: token })
+      .then((d) => setList(d.announcements || []))
+      .catch(() => setList([]));
+  }, []);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    load(accessToken);
+    const i = window.setInterval(() => load(accessToken), 7000);
+    return () => window.clearInterval(i);
+  }, [accessToken, load]);
+
+  if (!['teacher', 'parent', 'admin'].includes(user?.role || '')) return null;
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="card-title-row">
+        <div className="card-title">Announcements</div>
+        {canCreate && <div className="li-sub">Use the Announcements tab to post.</div>}
+      </div>
+      {(list || []).length === 0 ? (
+        <div className="li-sub">No announcements yet.</div>
+      ) : (
+        <div className="res-grid">
+          {list.slice(0, 6).map((a) => (
+            <div key={a.id} className="res-card">
+              <div className="res-top">
+                <Badge label={a.audience === 'all' ? 'All' : a.audience === 'teachers' ? 'Teachers' : 'Parents'} type="blue" />
+                <span className="res-cat">{new Date(a.createdAt).toLocaleDateString()}</span>
+              </div>
+              <div className="res-title">{a.title}</div>
+              <div className="res-desc">{a.body}</div>
+              <div className="li-sub">By {a.createdBy?.name || 'School'} ({a.createdBy?.role || 'admin'})</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnnouncementsWorkspace({ user, accessToken }) {
+  const [list, setList] = useState([]);
+  const [mine, setMine] = useState([]);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [audience, setAudience] = useState('all');
+  const [toast, setToast] = useState('');
+  const canCreate = user?.role === 'teacher' || user?.role === 'admin';
+
+  const showToast = useCallback((t) => {
+    setToast(t);
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(''), 1800);
+  }, []);
+
+  const load = useCallback(() => {
+    if (!accessToken) return;
+    apiFetch('/api/announcements', { accessToken })
+      .then((d) => setList(d.announcements || []))
+      .catch(() => setList([]));
+    if (canCreate) {
+      apiFetch('/api/announcements/mine', { accessToken })
+        .then((d) => setMine(d.announcements || []))
+        .catch(() => setMine([]));
+    }
+  }, [accessToken, canCreate]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div className="page">
+      <div className="page-head"><h1>Announcements</h1><p>School-wide updates for teachers and parents.</p></div>
+      {canCreate && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="card-title">Post announcement</div>
+          <div className="auth-field"><label>Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Parent Meeting Friday" /></div>
+          <div className="auth-field"><label>Message</label><textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write your announcement..." /></div>
+          <div className="auth-field">
+            <label>Audience</label>
+            <select value={audience} onChange={(e) => setAudience(e.target.value)}>
+              <option value="all">All</option>
+              <option value="teachers">Teachers only</option>
+              <option value="parents">Parents only</option>
+            </select>
+          </div>
+          <div className="lesson-actions">
+            <button
+              className="btn-primary"
+              onClick={async () => {
+                if (!title.trim() || !body.trim() || !accessToken) return;
+                try {
+                  await apiFetch('/api/announcements', { method: 'POST', accessToken, body: { title: title.trim(), body: body.trim(), audience } });
+                  setTitle('');
+                  setBody('');
+                  showToast('Announcement posted');
+                  load();
+                } catch (e) {
+                  showToast(e.message || 'Post failed');
+                }
+              }}
+              disabled={!title.trim() || !body.trim() || !accessToken}
+            >
+              <Icon name="plus" size={16} /> Post
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="card">
+        <div className="card-title">Recent announcements</div>
+        {list.length === 0 ? (
+          <div className="li-sub">No announcements yet.</div>
+        ) : (
+          <div className="res-grid" style={{ marginTop: 10 }}>
+            {list.map((a) => (
+              <div key={a.id} className="res-card">
+                <div className="res-top">
+                  <Badge label={a.audience === 'all' ? 'All' : a.audience === 'teachers' ? 'Teachers' : 'Parents'} type="blue" />
+                  <span className="res-cat">{new Date(a.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="res-title">{a.title}</div>
+                <div className="res-desc">{a.body}</div>
+                <div className="li-sub">By {a.createdBy?.name || 'School'} ({a.createdBy?.role || 'admin'})</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {canCreate && mine.length > 0 && <div className="li-sub" style={{ marginTop: 10 }}>You posted {mine.length} announcement(s).</div>}
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+    </div>
+  );
+}
+
+function TrainingTab({ openModuleTitle, onModuleOpened, user, accessToken }) {
   const [filter, setFilter] = useState('All');
   const [selectedModule, setSelectedModule] = useState(null);
+  const [assignedToMe, setAssignedToMe] = useState([]);
   const [modules, setModules] = useState([
     { title: 'Understanding Autism', desc: 'Foundations of autism and inclusive education.', pct: 100, status: 'Completed', duration: '45 mins' },
     { title: 'Inclusive Classroom Setup', desc: 'Design a classroom that works for every learner.', pct: 100, status: 'Completed', duration: '40 mins' },
@@ -1059,12 +1256,23 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
     { title: 'Parent Collaboration', desc: 'Building strong home-school connections.', pct: 0, status: 'Not Started', duration: '25 mins' },
   ]);
   const TRAINING_VIDEO_LINKS = {
-    'Understanding Autism': 'https://www.youtube.com/watch?v=GS9IFwuM_G8',
-    'Inclusive Classroom Setup': 'https://www.understood.org/en/articles/video-see-udl-in-action-in-the-classroom',
-    'Visual Communication': 'https://www.inclusion-europe.eu/inclusive-education-a-short-documentary-about-inclusivity-at-school/',
-    'Sensory Strategies': 'https://www.youtube.com/watch?v=Ilp2UK2nsBQ',
-    'Behavior Support': 'https://www.youtube.com/watch?v=GS9IFwuM_G8',
-    'Parent Collaboration': 'https://www.cdc.gov/autism/media/pdfs/ACT-Dev-Beh-Pediatrics-Curriculum.pdf',
+    'Understanding Autism': 'https://youtu.be/N1-Jc1suHT8?si=ecgzQHrG9VZ1pdkl',
+    'Inclusive Classroom Setup': 'https://youtu.be/S6MCCiM88tg?si=BMkBkrO_fASBTFPH',
+    'Visual Communication': 'https://youtu.be/lpb8XwdtHMI?si=H-xMRHMJOwJz8HD2',
+    'Sensory Strategies': 'https://youtu.be/P0Xw035sdAU?si=i8XtvLf77RrzYP2Z',
+    'Behavior Support': 'https://www.youtube.com/live/CZxyi698GZU?si=V9PX5sGKAkkl_hRU',
+    'Parent Collaboration': 'https://youtu.be/yyagWY5QF2Q?si=j26tlinTWsxC20Wz',
+  };
+  const toEmbedUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('youtube.com/embed/')) return url;
+    const short = url.match(/youtu\.be\/([^?&/]+)/i);
+    if (short?.[1]) return `https://www.youtube.com/embed/${short[1]}`;
+    const full = url.match(/[?&]v=([^?&/]+)/i);
+    if (full?.[1]) return `https://www.youtube.com/embed/${full[1]}`;
+    const live = url.match(/youtube\.com\/live\/([^?&/]+)/i);
+    if (live?.[1]) return `https://www.youtube.com/embed/${live[1]}`;
+    return '';
   };
 
   const markCompleted = (title) => {
@@ -1075,6 +1283,18 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
     setFilter('All');
   };
   const visible = filter === 'All' ? modules : modules.filter(m => m.status === filter);
+
+  useEffect(() => {
+    if (!accessToken || user?.role !== 'teacher') return;
+    let cancelled = false;
+    apiFetch('/api/training-assignments/mine', { accessToken })
+      .then((d) => {
+        if (cancelled) return;
+        setAssignedToMe(d.assignments || []);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [accessToken, user?.role]);
 
   useEffect(() => {
     if (!openModuleTitle) return;
@@ -1108,6 +1328,42 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
           </div>
         ))}
       </div>
+      {user?.role === 'teacher' && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-title">Assigned by Admin</div>
+          {(assignedToMe || []).length === 0 ? (
+            <div className="li-sub">No assigned training from admin yet.</div>
+          ) : (
+            <div className="res-grid" style={{ marginTop: 10 }}>
+              {assignedToMe.map((a) => (
+                <div key={a.id} className="res-card">
+                  <div className="res-top">
+                    <Badge label={a.status === 'completed' ? 'Completed' : 'Assigned'} type={a.status === 'completed' ? 'green' : 'blue'} />
+                    <span className="res-cat">By {a.assignedBy?.name || 'Admin'}</span>
+                  </div>
+                  <div className="res-title">{a.moduleTitle}</div>
+                  <div className="res-desc">{a.moduleDescription || 'Training module from admin'}</div>
+                  <div className="res-actions">
+                    {a.moduleLink && <a className="btn-sm" href={a.moduleLink} target="_blank" rel="noreferrer"><Icon name="play" size={13} /> Open</a>}
+                    {a.status !== 'completed' && (
+                      <button className="btn-complete" onClick={async () => {
+                        try {
+                          await apiFetch(`/api/training-assignments/${a.id}/complete`, { method: 'POST', accessToken });
+                          const d = await apiFetch('/api/training-assignments/mine', { accessToken });
+                          setAssignedToMe(d.assignments || []);
+                        } catch {}
+                      }}>
+                        <span className="btn-complete-dot" aria-hidden><Icon name="check" size={12} color="#fff" /></span>
+                        Mark complete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {selectedModule && (
         <div className="card" style={{ marginTop: 18 }}>
           <div className="card-title-row">
@@ -1117,9 +1373,20 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
             </div>
           </div>
           <div className="video-placeholder">
-            <div>
+            <div style={{ width: '100%' }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>Lesson video: {selectedModule.title}</div>
-              <div style={{ fontSize: 12 }}>Open the trusted reference/training resource for this module.</div>
+              {toEmbedUrl(TRAINING_VIDEO_LINKS[selectedModule.title]) ? (
+                <iframe
+                  title={`${selectedModule.title} video`}
+                  src={toEmbedUrl(TRAINING_VIDEO_LINKS[selectedModule.title])}
+                  style={{ width: '100%', minHeight: 320, border: 0, borderRadius: 10, background: '#000' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              ) : (
+                <div style={{ fontSize: 12, marginBottom: 8 }}>Open the trusted reference/training resource for this module.</div>
+              )}
               {TRAINING_VIDEO_LINKS[selectedModule.title] && (
                 <a
                   className="btn-primary"
@@ -1128,7 +1395,7 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
                   rel="noreferrer"
                   style={{ marginTop: 10, display: 'inline-flex' }}
                 >
-                  <Icon name="play" size={16} /> Watch resource
+                  <Icon name="play" size={16} /> Open on source
                 </a>
               )}
             </div>
@@ -1340,7 +1607,7 @@ function ResourcesTab() {
   );
 }
 
-function MessagesTab({ user, accessToken }) {
+function MessagesTab({ user, accessToken, preferredUserId }) {
   const [msg, setMsg] = useState('');
   const [threads, setThreads] = useState([]);
   const [activeUserId, setActiveUserId] = useState('');
@@ -1413,6 +1680,11 @@ function MessagesTab({ user, accessToken }) {
       window.clearInterval(interval);
     };
   }, [activeUserId, accessToken, usingFallback]);
+
+  useEffect(() => {
+    if (!preferredUserId || usingFallback) return;
+    setActiveUserId(preferredUserId);
+  }, [preferredUserId, usingFallback]);
 
   const send = async () => {
     if (!msg.trim()) return;
@@ -1628,14 +1900,91 @@ function FeedbackTab() {
   );
 }
 
+function TrainingAssignmentsTab({ actorRole, accessToken }) {
+  const [people, setPeople] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [moduleTitle, setModuleTitle] = useState('');
+  const [moduleDescription, setModuleDescription] = useState('');
+  const [moduleLink, setModuleLink] = useState('');
+  const [toast, setToast] = useState('');
+
+  const showToast = useCallback((t) => {
+    setToast(t);
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(''), 1800);
+  }, []);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    const endpoint = actorRole === 'admin' ? '/api/users/teachers' : '/api/users/parents';
+    apiFetch(endpoint, { accessToken })
+      .then((d) => {
+        const list = actorRole === 'admin' ? (d.teachers || []) : (d.parents || []);
+        setPeople(list);
+        if (list[0]?.id) setSelectedUserId(list[0].id);
+      })
+      .catch(() => setPeople([]));
+  }, [actorRole, accessToken]);
+
+  const assign = async () => {
+    if (!selectedUserId || !moduleTitle.trim()) return;
+    try {
+      await apiFetch('/api/training-assignments', {
+        method: 'POST',
+        accessToken,
+        body: {
+          assigneeUserId: selectedUserId,
+          moduleTitle: moduleTitle.trim(),
+          moduleDescription: moduleDescription.trim(),
+          moduleLink: moduleLink.trim() || undefined,
+        },
+      });
+      setModuleTitle('');
+      setModuleDescription('');
+      setModuleLink('');
+      showToast('Training assigned');
+    } catch (e) {
+      showToast(e.message || 'Assignment failed');
+    }
+  };
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <h1>{actorRole === 'admin' ? 'Assign Teacher Training' : 'Assign Parent Training'}</h1>
+        <p>{actorRole === 'admin' ? 'Admin assigns training modules to teachers.' : 'Teacher assigns guidance modules to parents.'}</p>
+      </div>
+      <div className="card">
+        <div className="auth-field">
+          <label>{actorRole === 'admin' ? 'Select teacher' : 'Select parent'}</label>
+          <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)}>
+            {people.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.email})</option>)}
+          </select>
+        </div>
+        <div className="auth-field"><label>Module title</label><input value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} placeholder="e.g. Visual Communication Basics" /></div>
+        <div className="auth-field"><label>Description</label><textarea rows={3} value={moduleDescription} onChange={(e) => setModuleDescription(e.target.value)} placeholder="What they should learn from this module" /></div>
+        <div className="auth-field"><label>Resource/video link (optional)</label><input value={moduleLink} onChange={(e) => setModuleLink(e.target.value)} placeholder="https://..." /></div>
+        <div className="lesson-actions">
+          <button className="btn-primary" onClick={assign} disabled={!selectedUserId || !moduleTitle.trim()}>
+            <Icon name="plus" size={16} /> Assign training
+          </button>
+        </div>
+      </div>
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────
    PARENT DASHBOARD
 ───────────────────────────────────────── */
 function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const [activityOpenTitle, setActivityOpenTitle] = useState(null);
+  const [messageOpenUserId, setMessageOpenUserId] = useState('');
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
+    { id: 'training', label: 'Training', icon: 'graduation' },
     { id: 'activities', label: 'Activities', icon: 'calendar' },
     { id: 'progress', label: 'Progress Tracking', icon: 'chart' },
     { id: 'assigned', label: 'Assigned', icon: 'check' },
@@ -1643,11 +1992,18 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
     { id: 'messages', label: 'Messages', icon: 'message' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
+  useEffect(() => {
+    if (!notifProps?.notifNav?.key) return;
+    if (notifProps.notifNav.tab) setTab(notifProps.notifNav.tab);
+    if (notifProps.notifNav.userId) setMessageOpenUserId(notifProps.notifNav.userId);
+  }, [notifProps?.notifNav]);
+
   return (
     <Shell user={user} onLogout={onLogout} {...notifProps} navItems={nav} activeTab={tab} setActiveTab={setTab}>
       {tab === 'home' && (
         <ParentHome
           user={user}
+          accessToken={accessToken}
           onGoActivities={() => setTab('activities')}
           onGoProgress={() => setTab('progress')}
           onGoResources={() => setTab('resources')}
@@ -1655,17 +2011,18 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
           onOpenActivity={(title) => { setActivityOpenTitle(title); setTab('activities'); }}
         />
       )}
+      {tab === 'training' && <ParentTrainingTab accessToken={accessToken} />}
       {tab === 'activities' && <ActivitiesTab openActivityTitle={activityOpenTitle} onActivityOpened={() => setActivityOpenTitle(null)} />}
       {tab === 'progress' && <ProgressTab />}
       {tab === 'assigned' && <ParentAssignedTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
-      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} />}
+      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} preferredUserId={messageOpenUserId} />}
       {tab === 'settings' && <SettingsWorkspace user={user} />}
     </Shell>
   );
 }
 
-function ParentHome({ user, onGoActivities, onGoProgress, onGoResources, onGoMessages, onOpenActivity }) {
+function ParentHome({ user, accessToken, onGoActivities, onGoProgress, onGoResources, onGoMessages, onOpenActivity }) {
   return (
     <div className="page">
       <div className="page-head">
@@ -1719,6 +2076,63 @@ function ParentHome({ user, onGoActivities, onGoProgress, onGoResources, onGoMes
           </div>
         </div>
       </div>
+      <AnnouncementsPanel user={user} accessToken={accessToken} />
+    </div>
+  );
+}
+
+function ParentTrainingTab({ accessToken }) {
+  const [list, setList] = useState([]);
+  const [toast, setToast] = useState('');
+  const showToast = useCallback((t) => {
+    setToast(t);
+    window.clearTimeout(showToast._t);
+    showToast._t = window.setTimeout(() => setToast(''), 1800);
+  }, []);
+
+  const load = useCallback(() => {
+    if (!accessToken) return;
+    apiFetch('/api/training-assignments/mine', { accessToken })
+      .then((d) => setList(d.assignments || []))
+      .catch((e) => showToast(e.message || 'Failed to load training assignments'));
+  }, [accessToken, showToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div className="page">
+      <div className="page-head"><h1>My training modules</h1><p>Modules assigned by your teacher.</p></div>
+      {list.length === 0 ? (
+        <div className="card"><div className="li-sub">No training assigned yet.</div></div>
+      ) : (
+        <div className="res-grid">
+          {list.map((a) => (
+            <div key={a.id} className="res-card">
+              <div className="res-top">
+                <Badge label={a.status === 'completed' ? 'Completed' : 'Assigned'} type={a.status === 'completed' ? 'green' : 'blue'} />
+                <span className="res-cat">By {a.assignedBy?.name || 'Teacher'}</span>
+              </div>
+              <div className="res-title">{a.moduleTitle}</div>
+              <div className="res-desc">{a.moduleDescription || 'Parent guidance module'}</div>
+              <div className="res-actions">
+                {a.moduleLink && <a className="btn-sm" href={a.moduleLink} target="_blank" rel="noreferrer"><Icon name="play" size={13} /> Open</a>}
+                {a.status !== 'completed' && (
+                  <button className="btn-complete" onClick={async () => {
+                    try {
+                      await apiFetch(`/api/training-assignments/${a.id}/complete`, { method: 'POST', accessToken });
+                      load();
+                    } catch {}
+                  }}>
+                    <span className="btn-complete-dot" aria-hidden><Icon name="check" size={12} color="#fff" /></span>
+                    Mark complete
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
     </div>
   );
 }
@@ -2316,27 +2730,38 @@ function ChildDashboard({ user, onLogout, accessToken }) {
 ───────────────────────────────────────── */
 function AdminDashboard({ user, onLogout, users, setUsers, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('overview');
+  const [messageOpenUserId, setMessageOpenUserId] = useState('');
+  useEffect(() => {
+    if (!notifProps?.notifNav?.key) return;
+    if (notifProps.notifNav.tab) setTab(notifProps.notifNav.tab);
+    if (notifProps.notifNav.userId) setMessageOpenUserId(notifProps.notifNav.userId);
+  }, [notifProps?.notifNav]);
+
   const nav = [
     { id: 'overview', label: 'Overview', icon: 'grid' },
+    { id: 'training', label: 'Teacher Training', icon: 'graduation' },
     { id: 'users', label: 'Users', icon: 'users' },
     { id: 'reports', label: 'Reports', icon: 'bar_chart' },
     { id: 'messages', label: 'Messages', icon: 'message' },
+    { id: 'announcements', label: 'Announcements', icon: 'bell' },
     { id: 'feedback', label: 'Feedback', icon: 'star' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
   return (
     <Shell user={user} onLogout={onLogout} {...notifProps} navItems={nav} activeTab={tab} setActiveTab={setTab}>
-      {tab === 'overview' && <AdminOverview />}
+      {tab === 'overview' && <AdminOverview user={user} accessToken={accessToken} />}
+      {tab === 'training' && <TrainingAssignmentsTab actorRole="admin" accessToken={accessToken} />}
       {tab === 'users' && <UsersTab users={users} setUsers={setUsers} />}
       {tab === 'reports' && <ReportsTab />}
-      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} />}
+      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} preferredUserId={messageOpenUserId} />}
+      {tab === 'announcements' && <AnnouncementsWorkspace user={user} accessToken={accessToken} />}
       {tab === 'feedback' && <FeedbackTab />}
       {tab === 'settings' && <SettingsTab />}
     </Shell>
   );
 }
 
-function AdminOverview() {
+function AdminOverview({ user, accessToken }) {
   return (
     <div className="page">
       <div className="page-head"><h1>School Overview</h1><p>Monitor platform usage across your school.</p></div>
@@ -2364,6 +2789,7 @@ function AdminOverview() {
           </div>
         ))}
       </div>
+      <AnnouncementsPanel user={user} accessToken={accessToken} />
     </div>
   );
 }
