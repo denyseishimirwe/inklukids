@@ -198,7 +198,7 @@ function App() {
   if (page === 'register') return <AuthPage mode="register" go={setPage} users={users} onAuth={handleAuth} setAccessToken={setAccessToken} />;
   if (page === 'teacher-dashboard') return <TeacherDashboard user={user} onLogout={handleLogout} accessToken={accessToken} {...notifProps} />;
   if (page === 'parent-dashboard') return <ParentDashboard user={user} onLogout={handleLogout} accessToken={accessToken} {...notifProps} />;
-  if (page === 'admin-dashboard') return <AdminDashboard user={user} onLogout={handleLogout} users={users} setUsers={setUsers} {...notifProps} />;
+  if (page === 'admin-dashboard') return <AdminDashboard user={user} onLogout={handleLogout} users={users} setUsers={setUsers} accessToken={accessToken} {...notifProps} />;
   if (page === 'child-dashboard') return <ChildDashboard user={user} onLogout={handleLogout} accessToken={accessToken} />;
   return <LandingPage go={setPage} />;
 }
@@ -1058,6 +1058,14 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
     { title: 'Behavior Support', desc: 'Positive behavior strategies for autistic children.', pct: 0, status: 'Not Started', duration: '50 mins' },
     { title: 'Parent Collaboration', desc: 'Building strong home-school connections.', pct: 0, status: 'Not Started', duration: '25 mins' },
   ]);
+  const TRAINING_VIDEO_LINKS = {
+    'Understanding Autism': 'https://www.youtube.com/watch?v=GS9IFwuM_G8',
+    'Inclusive Classroom Setup': 'https://www.understood.org/en/articles/video-see-udl-in-action-in-the-classroom',
+    'Visual Communication': 'https://www.inclusion-europe.eu/inclusive-education-a-short-documentary-about-inclusivity-at-school/',
+    'Sensory Strategies': 'https://www.youtube.com/watch?v=Ilp2UK2nsBQ',
+    'Behavior Support': 'https://www.youtube.com/watch?v=GS9IFwuM_G8',
+    'Parent Collaboration': 'https://www.cdc.gov/autism/media/pdfs/ACT-Dev-Beh-Pediatrics-Curriculum.pdf',
+  };
 
   const markCompleted = (title) => {
     setModules(p =>
@@ -1108,7 +1116,23 @@ function TrainingTab({ openModuleTitle, onModuleOpened }) {
               <button className="btn-sm" onClick={() => setSelectedModule(null)}>Close</button>
             </div>
           </div>
-          <div className="video-placeholder">Video embed placeholder</div>
+          <div className="video-placeholder">
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Lesson video: {selectedModule.title}</div>
+              <div style={{ fontSize: 12 }}>Open the trusted reference/training resource for this module.</div>
+              {TRAINING_VIDEO_LINKS[selectedModule.title] && (
+                <a
+                  className="btn-primary"
+                  href={TRAINING_VIDEO_LINKS[selectedModule.title]}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ marginTop: 10, display: 'inline-flex' }}
+                >
+                  <Icon name="play" size={16} /> Watch resource
+                </a>
+              )}
+            </div>
+          </div>
           <ol className="lesson-steps">
             <li>Watch introduction video</li>
             <li>Read key guidance points</li>
@@ -1224,12 +1248,12 @@ function ResourcesTab() {
   const [selected, setSelected] = useState(null);
   const [saved, setSaved] = useState([]);
   const list = [
-    { type: 'Guides', title: 'Visual Schedule Templates', cat: 'Classroom', desc: 'Printable daily schedule cards for autistic learners.' },
-    { type: 'Videos', title: 'Communication Strategies', cat: 'Training', desc: 'Step-by-step video on using AAC devices in class.' },
-    { type: 'Visual Aids', title: 'Sensory Checklist', cat: 'Assessment', desc: 'Identify sensory sensitivities in your students.' },
-    { type: 'Lesson Plans', title: 'Inclusive Lesson Plan', cat: 'Classroom', desc: 'Lesson plan template for mixed-ability classrooms.' },
-    { type: 'Videos', title: 'Positive Behavior Support', cat: 'Training', desc: 'Practical strategies for managing behavior.' },
-    { type: 'Guides', title: 'Parent Communication Guide', cat: 'Communication', desc: 'Tips for effective home-school collaboration.' },
+    { type: 'Guides', title: 'Visual Schedule Templates', cat: 'Classroom', desc: 'Printable daily schedule cards for autistic learners.', url: 'https://www.autismspeaks.org/visual-supports' },
+    { type: 'Videos', title: 'Communication Strategies', cat: 'Training', desc: 'Step-by-step video on using AAC devices in class.', url: 'https://www.youtube.com/watch?v=GS9IFwuM_G8' },
+    { type: 'Visual Aids', title: 'Sensory Checklist', cat: 'Assessment', desc: 'Identify sensory sensitivities in your students.', url: 'https://www.autismspeaks.org/tool-kit/autism-care-networkair-p-visual-supports-and-autism' },
+    { type: 'Lesson Plans', title: 'Inclusive Lesson Plan', cat: 'Classroom', desc: 'Lesson plan template for mixed-ability classrooms.', url: 'https://www.understood.org/en/articles/video-see-udl-in-action-in-the-classroom' },
+    { type: 'Videos', title: 'Positive Behavior Support', cat: 'Training', desc: 'Practical strategies for managing behavior.', url: 'https://www.inclusion-europe.eu/inclusive-education-a-short-documentary-about-inclusivity-at-school/' },
+    { type: 'Guides', title: 'Parent Communication Guide', cat: 'Communication', desc: 'Tips for effective home-school collaboration.', url: 'https://www.cdc.gov/autism/media/pdfs/ACT-Dev-Beh-Pediatrics-Curriculum.pdf' },
   ];
   const visible = list.filter(r => (filter === 'All' || r.type === filter) && r.title.toLowerCase().includes(query.toLowerCase()));
   return (
@@ -1275,11 +1299,32 @@ function ResourcesTab() {
           <p className="res-detail-desc">{selected.desc}</p>
 
           {selected.type === 'Videos' ? (
-            <div className="video-placeholder">Video preview placeholder</div>
+            <div className="video-placeholder">
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>{selected.title} - Video preview</div>
+                <div style={{ fontSize: 12 }}>Open this trusted video/resource in a new tab.</div>
+                {selected.url && (
+                  <a
+                    className="btn-primary"
+                    href={selected.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ marginTop: 10, display: 'inline-flex' }}
+                  >
+                    <Icon name="play" size={16} /> Watch video
+                  </a>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="res-download-box">
               <div className="res-download-title">Download ready</div>
-              <div className="res-download-sub">This is a placeholder file in the demo.</div>
+              <div className="res-download-sub">Exported quick reference generated from this resource card.</div>
+              {selected.url && (
+                <a className="btn-sm" href={selected.url} target="_blank" rel="noreferrer">
+                  <Icon name="download" size={14} /> Open source link
+                </a>
+              )}
               <a
                 className="btn-primary"
                 href={`data:text/plain;charset=utf-8,${encodeURIComponent(`${selected.title}\n\nCategory: ${selected.cat}\nType: ${selected.type}\n\n${selected.desc}\n`)}`}
@@ -1421,6 +1466,7 @@ function MessagesTab({ user, accessToken }) {
   const activeMsgs = usingFallback ? (fallback[activeFallbackName] || []) : msgs;
   const activeName = usingFallback ? activeFallbackName : (activeThread?.name || 'Messages');
   const activeDisplayName = usingFallback ? activeName : personLabel(activeThread?.name, activeThread?.role);
+  const canSend = usingFallback || !!activeUserId;
   const newPersonCandidates = threads.filter((t) => {
     const q = newPersonQuery.trim().toLowerCase();
     const roleOk = newPersonRole === 'all' || t.role === newPersonRole;
@@ -1526,7 +1572,11 @@ function MessagesTab({ user, accessToken }) {
             <div className="chat-header-sub">{usingFallback ? 'Secure messaging' : `You are ${myLabel}`}</div>
           </div>
           <div className="chat-msgs">
-            {activeMsgs.map((m, i) => (
+            {!canSend ? (
+              <div className="li-sub" style={{ padding: 12 }}>Select a person from the left to start messaging.</div>
+            ) : activeMsgs.length === 0 ? (
+              <div className="li-sub" style={{ padding: 12 }}>No messages yet. Say hello to start the conversation.</div>
+            ) : activeMsgs.map((m, i) => (
               <div key={i} className={`bwrap ${m.mine ? 'right' : 'left'}`}>
                 <div className="bname">{m.mine ? `You (${myLabel})` : (usingFallback ? m.from : activeDisplayName)}</div>
                 <div className={`bubble ${m.mine ? 'bmine' : 'btheirs'}`}>{m.text}</div>
@@ -1535,8 +1585,8 @@ function MessagesTab({ user, accessToken }) {
             ))}
           </div>
           <div className="chat-input">
-            <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message..." />
-            <button className="btn-primary" onClick={send}><Icon name="send" size={16} /></button>
+            <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type a message..." disabled={!canSend} />
+            <button className="btn-primary" onClick={send} disabled={!canSend}><Icon name="send" size={16} /></button>
           </div>
         </div>
       </div>
@@ -2264,12 +2314,13 @@ function ChildDashboard({ user, onLogout, accessToken }) {
 /* ─────────────────────────────────────────
    ADMIN DASHBOARD
 ───────────────────────────────────────── */
-function AdminDashboard({ user, onLogout, users, setUsers, ...notifProps }) {
+function AdminDashboard({ user, onLogout, users, setUsers, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('overview');
   const nav = [
     { id: 'overview', label: 'Overview', icon: 'grid' },
     { id: 'users', label: 'Users', icon: 'users' },
     { id: 'reports', label: 'Reports', icon: 'bar_chart' },
+    { id: 'messages', label: 'Messages', icon: 'message' },
     { id: 'feedback', label: 'Feedback', icon: 'star' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
@@ -2278,6 +2329,7 @@ function AdminDashboard({ user, onLogout, users, setUsers, ...notifProps }) {
       {tab === 'overview' && <AdminOverview />}
       {tab === 'users' && <UsersTab users={users} setUsers={setUsers} />}
       {tab === 'reports' && <ReportsTab />}
+      {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} />}
       {tab === 'feedback' && <FeedbackTab />}
       {tab === 'settings' && <SettingsTab />}
     </Shell>
