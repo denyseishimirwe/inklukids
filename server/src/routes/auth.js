@@ -28,13 +28,21 @@ const LoginSchema = z.object({
   password: z.string().min(1),
 });
 
-function refreshCookieOptions(req, ttlDays) {
+function refreshCookieShape(env) {
   const isProd = process.env.NODE_ENV === 'production';
+  const crossSite = Boolean(env.REFRESH_COOKIE_CROSS_SITE);
+  return {
+    sameSite: crossSite ? 'none' : 'lax',
+    secure: crossSite ? true : isProd,
+    path: '/api/auth',
+  };
+}
+
+function refreshCookieOptions(req, ttlDays, env) {
+  const shape = refreshCookieShape(env);
   return {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: isProd,
-    path: '/api/auth',
+    ...shape,
     maxAge: ttlDays * 24 * 60 * 60 * 1000,
   };
 }
@@ -88,7 +96,7 @@ router.post('/register', async (req, res) => {
     expiresAt: new Date(Date.now() + req.app.locals.env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
   });
 
-  res.cookie('refreshToken', refreshToken, refreshCookieOptions(req, req.app.locals.env.REFRESH_TOKEN_TTL_DAYS));
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions(req, req.app.locals.env.REFRESH_TOKEN_TTL_DAYS, req.app.locals.env));
   return res.status(201).json({ user: safeUser(user), accessToken });
 });
 
@@ -124,7 +132,7 @@ router.post('/login', async (req, res) => {
     expiresAt: new Date(Date.now() + req.app.locals.env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
   });
 
-  res.cookie('refreshToken', refreshToken, refreshCookieOptions(req, req.app.locals.env.REFRESH_TOKEN_TTL_DAYS));
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions(req, req.app.locals.env.REFRESH_TOKEN_TTL_DAYS, req.app.locals.env));
   return res.json({ user: safeUser(user), accessToken });
 });
 
@@ -172,7 +180,7 @@ router.post('/refresh', async (req, res) => {
     ttl: req.app.locals.env.ACCESS_TOKEN_TTL,
   });
 
-  res.cookie('refreshToken', newRt, refreshCookieOptions(req, req.app.locals.env.REFRESH_TOKEN_TTL_DAYS));
+  res.cookie('refreshToken', newRt, refreshCookieOptions(req, req.app.locals.env.REFRESH_TOKEN_TTL_DAYS, req.app.locals.env));
   return res.json({ accessToken });
 });
 
@@ -182,7 +190,7 @@ router.post('/logout', async (req, res) => {
     const tokenHash = sha256(rt);
     await RefreshToken.updateOne({ tokenHash }, { $set: { revokedAt: new Date() } });
   }
-  res.clearCookie('refreshToken', { path: '/api/auth' });
+  res.clearCookie('refreshToken', refreshCookieShape(req.app.locals.env));
   return res.json({ ok: true });
 });
 

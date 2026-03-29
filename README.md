@@ -1,3 +1,33 @@
+# InkluKids
+
+React (Create React App) frontend plus a **Node/Express + MongoDB** API in **`server/`**. The old **`backend/`** folder is unused; see `backend/README.md`.
+
+## Run locally
+
+1. **MongoDB** — e.g. `docker compose up -d` (see `docker-compose.yml`) or your own instance on port `27017`.
+2. **API** — copy `server/.env.example` to `server/.env`, set secrets (16+ characters), then:
+   - `cd server && npm install && npm start`  
+   Default API: `http://localhost:5000`, CORS origin: `CLIENT_ORIGIN` in `.env` (usually `http://localhost:3000`).
+3. **Frontend** — from the repo root: `npm install && npm start`  
+   The app calls `REACT_APP_API_BASE` or `http://localhost:5000` (see `src/api/client.js`).
+
+## Production checklist
+
+- Set **`CLIENT_ORIGIN`** on the server to your **exact** live site URL (e.g. `https://myapp.vercel.app`).
+- Build the SPA with **`REACT_APP_API_BASE`** pointing at your **public API** URL.
+- If the SPA and API are on **different domains**, set **`REFRESH_COOKIE_CROSS_SITE=true`** on the server and serve the API over **HTTPS** (refresh cookies use `SameSite=None; Secure`).
+- Never commit real `.env` files or JWT secrets.
+
+## Automated QA (build + tests)
+
+From the repo root:
+
+```bash
+npm run qa
+```
+
+---
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

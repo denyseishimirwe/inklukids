@@ -8,6 +8,12 @@ const EnvSchema = z.object({
   ACCESS_TOKEN_TTL: z.string().min(1).default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   CLIENT_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  /** Set to true when the SPA and API use different site names (e.g. Vercel + Render). Requires HTTPS on the API. */
+  REFRESH_COOKIE_CROSS_SITE: z.preprocess((v) => {
+    if (v === undefined || v === '') return false;
+    if (typeof v === 'boolean') return v;
+    return ['1', 'true', 'yes'].includes(String(v).toLowerCase());
+  }, z.boolean()),
   NODE_ENV: z.string().optional(),
 });
 

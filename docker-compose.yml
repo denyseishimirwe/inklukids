@@ -1,0 +1,15 @@
+# Local MongoDB for InkluKids API (server/).
+# Run: docker compose up -d
+# Then copy server/.env.example to server/.env and start the API: cd server && npm start
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: inklukids-mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - inklukids_mongo_data:/data/db
+
+volumes:
+  inklukids_mongo_data:
