@@ -1284,3 +1284,176 @@ h1 em, h2 em { color: var(--blue-bright); }
     height: 108px;
   }
 }
+
+/* ---- Mobile/tablet polish for dashboards ---- */
+@media (max-width: 900px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    max-height: none;
+    z-index: 80;
+    padding: 10px 10px 8px;
+  }
+
+  .sidebar-logo {
+    padding: 0 6px 10px;
+    margin-bottom: 8px;
+    border-bottom: 0;
+    font-size: 16px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 8px;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nav-item.active {
+    border-left: 0;
+    border-bottom-color: var(--blue-primary);
+  }
+
+  .sidebar-bottom {
+    display: none;
+  }
+
+  .main-wrap {
+    margin-left: 0;
+    min-width: 0;
+  }
+
+  .topbar {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar-title {
+    font-size: 14px;
+  }
+
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .topbar-search input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .notif-panel {
+    right: 0;
+    left: auto;
+    width: min(92vw, 340px);
+  }
+
+  .main-content {
+    padding: 14px 12px 22px;
+  }
+
+  .page {
+    max-width: 100%;
+  }
+
+  .page-head h1 {
+    font-size: 22px;
+  }
+
+  .stats-row,
+  .res-grid,
+  .prog-grid,
+  .two-col,
+  .cp-stats,
+  .awards-grid,
+  .child-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card,
+  .prog-card,
+  .res-card,
+  .feedback-card {
+    padding: 14px;
+  }
+
+  .chat-layout {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .chat-list {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .chat-msgs {
+    min-height: 220px;
+    max-height: 52vh;
+    padding: 12px;
+  }
+
+  .bwrap {
+    max-width: 88%;
+  }
+
+  .table-card {
+    border-radius: 10px;
+  }
+
+  .t-head,
+  .t-row {
+    min-width: 680px;
+  }
+
+  .auth-page {
+    min-height: auto;
+  }
+
+  .auth-left {
+    padding: 22px 14px;
+    box-shadow: none;
+  }
+
+  .auth-left::after {
+    display: none;
+  }
+
+  .auth-right {
+    display: none;
+  }
+
+  .auth-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-roles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .lp-hero,
+  .lp-features,
+  .lp-roles,
+  .lp-why,
+  .lp-cta {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .lp-numbers {
+    grid-template-columns: 1fr 1fr;
+  }
+}
