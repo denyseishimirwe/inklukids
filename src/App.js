@@ -2025,14 +2025,12 @@ function TrainingAssignmentsTab({ actorRole, accessToken }) {
 ───────────────────────────────────────── */
 function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('home');
-  const [activityOpenTitle, setActivityOpenTitle] = useState(null);
   const [messageOpenUserId, setMessageOpenUserId] = useState('');
   const [linkedChildren, setLinkedChildren] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState('');
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'training', label: 'Training', icon: 'graduation' },
-    { id: 'activities', label: 'Home Activities', icon: 'calendar' },
     { id: 'progress', label: 'Progress Tracking', icon: 'chart' },
     { id: 'assigned', label: 'Assigned', icon: 'check' },
     { id: 'resources', label: 'Resource Library', icon: 'book' },
@@ -2075,15 +2073,12 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
           linkedChildren={linkedChildren}
           selectedChildId={selectedChildId}
           setSelectedChildId={setSelectedChildId}
-          onGoActivities={() => setTab('activities')}
           onGoProgress={() => setTab('progress')}
           onGoResources={() => setTab('resources')}
           onGoMessages={() => setTab('messages')}
-          onOpenActivity={(title) => { setActivityOpenTitle(title); setTab('activities'); }}
         />
       )}
       {tab === 'training' && <ParentTrainingTab accessToken={accessToken} />}
-      {tab === 'activities' && <ActivitiesTab openActivityTitle={activityOpenTitle} onActivityOpened={() => setActivityOpenTitle(null)} />}
       {tab === 'progress' && (
         <ProgressTab
           mode="parent"
@@ -2120,7 +2115,7 @@ function ChildPicker({ linkedChildren, selectedChildId, setSelectedChildId, labe
   );
 }
 
-function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSelectedChildId, onGoActivities, onGoProgress, onGoResources, onGoMessages, onOpenActivity }) {
+function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSelectedChildId, onGoProgress, onGoResources, onGoMessages }) {
   const selectedChild = (linkedChildren || []).find((c) => c.id === selectedChildId) || linkedChildren?.[0] || null;
   return (
     <div className="page">
@@ -2136,7 +2131,6 @@ function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSel
         <ChildPicker linkedChildren={linkedChildren} selectedChildId={selectedChildId} setSelectedChildId={setSelectedChildId} />
       </div>
       <div className="quick-actions">
-        <button className="btn-sm" onClick={onGoActivities}><Icon name="calendar" size={14} /> Home Activities</button>
         <button className="btn-sm" onClick={onGoProgress}><Icon name="chart" size={14} /> Progress</button>
         <button className="btn-sm" onClick={onGoResources}><Icon name="book" size={14} /> Resources</button>
         <button className="btn-sm" onClick={onGoMessages}><Icon name="message" size={14} /> Messages</button>
@@ -2148,28 +2142,6 @@ function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSel
         <StatCard label="New Resources" value="4" icon="book" color="var(--peach-tint)" />
       </div>
       <div className="two-col">
-        <div className="card">
-          <div className="card-title">Suggested home activities</div>
-          <div className="li-sub" style={{ marginTop: 6 }}>
-            These are activities you can do <strong>with your child</strong> at home (not the child portal).
-          </div>
-          {[
-            { title: 'Matching Colors Game', time: '10 min', done: true },
-            { title: 'Story Time with Pictures', time: '15 min', done: true },
-            { title: 'Emotions Card Exercise', time: '10 min', done: false },
-          ].map((a, i) => (
-            <div className="list-item" key={i}>
-              <div className={`act-check ${a.done ? 'done' : ''}`}>
-                <Icon name="check" size={13} color={a.done ? '#fff' : 'transparent'} />
-              </div>
-              <div className="li-body">
-                <div className="li-title">{a.title}</div>
-                <div className="li-sub">{a.time}</div>
-              </div>
-              {!a.done && <button className="btn-sm" onClick={() => onOpenActivity?.(a.title)}>Start</button>}
-            </div>
-          ))}
-        </div>
         <div className="card">
           <div className="card-title-row">
             <div className="card-title">Latest from Teacher</div>
@@ -2378,54 +2350,6 @@ function ParentAssignedTab({ accessToken }) {
       </div>
 
       {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
-    </div>
-  );
-}
-
-function ActivitiesTab({ openActivityTitle, onActivityOpened }) {
-  const [activeActivity, setActiveActivity] = useState(null);
-  const list = [
-    { title: 'Matching Colors Game', cat: 'Interactive', time: '10 min', diff: 'Easy', desc: 'Match colored objects to their corresponding color cards.' },
-    { title: 'Story Time with Pictures', cat: 'Reading', time: '15 min', diff: 'Easy', desc: 'Read illustrated stories and discuss the pictures together.' },
-    { title: 'Emotions Card Exercise', cat: 'Visual', time: '10 min', diff: 'Easy', desc: 'Use emotion cards to identify and name feelings.' },
-    { title: 'Daily Routine Practice', cat: 'Visual', time: '20 min', diff: 'Medium', desc: 'Practice routines using visual step-by-step guides.' },
-    { title: 'Counting with Objects', cat: 'Interactive', time: '15 min', diff: 'Easy', desc: 'Use everyday objects to practice counting and basic math.' },
-    { title: 'Sensory Play', cat: 'Interactive', time: '20 min', diff: 'Easy', desc: 'Safe sensory activities using sand, water, or playdough.' },
-  ];
-  useEffect(() => {
-    if (!openActivityTitle) return;
-    const a = list.find(x => x.title === openActivityTitle);
-    if (a) setActiveActivity(a);
-    onActivityOpened?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openActivityTitle]);
-  return (
-    <div className="page">
-      <div className="page-head"><h1>Home Activities</h1><p>Fun, inclusive activities for your child to do at home.</p></div>
-      <div className="res-grid">
-        {list.map((a, i) => (
-          <div className="res-card" key={i}>
-            <div className="res-top"><Badge label={a.cat} type="blue" /><span className="res-cat">{a.time} · {a.diff}</span></div>
-            <div className="res-title">{a.title}</div>
-            <div className="res-desc">{a.desc}</div>
-            <button className="btn-sm" onClick={() => setActiveActivity(a)}>Start Activity</button>
-          </div>
-        ))}
-      </div>
-      {activeActivity && (
-        <div className="card" style={{ marginTop: 18 }}>
-          <div className="card-title-row">
-            <div className="card-title">{activeActivity.title} - Step by Step</div>
-            <button className="btn-sm" onClick={() => setActiveActivity(null)}>Close</button>
-          </div>
-          <ol className="lesson-steps">
-            <li>Prepare materials and visual aids.</li>
-            <li>Demonstrate the activity once.</li>
-            <li>Let the child complete with guidance.</li>
-            <li>Encourage and mark activity as done.</li>
-          </ol>
-        </div>
-      )}
     </div>
   );
 }
