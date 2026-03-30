@@ -171,21 +171,12 @@ Set environment variable:
 
 ---
 
-## Summative Submission Checklist
 
-- [x] Public GitHub repository
-- [x] Public deployed frontend URL
-- [ ] 5–10 minute demo video link
-- [ ] SRS document link
-- [ ] Google Doc named `personNames_[Summative]_[MMDDYYYY]`
-- [ ] All shared links are accessible to grader
 
 ### Submission Links
 - **GitHub Repository:** [https://github.com/denyseishimirwe/inklukids](https://github.com/denyseishimirwe/inklukids)
 - **Frontend URL:** `https://inklukids.vercel.app`
 - **Backend Health URL:** `https://inklukids.onrender.com/health`
-- **SRS Document:** `<PASTE_SRS_LINK>`
-- **Demo Video:** `<PASTE_VIDEO_LINK>`
 
 ---
 
