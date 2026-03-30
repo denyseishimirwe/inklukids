@@ -64,7 +64,7 @@ InkluKids provides one role-based platform where teachers, parents, children, an
 ## Repository Structure
 
 ```text
-inklukids3/
+inklukids/          # default folder name after `git clone` (rename if yours differs)
 ├── src/
 │   ├── App.js
 │   ├── App.css
@@ -93,18 +93,21 @@ inklukids3/
 - Node.js 18+ and npm
 - MongoDB Atlas (recommended) or local MongoDB
 
+For **local MongoDB** with Docker, from the repo root run `docker compose up -d`, then set `MONGO_URI=mongodb://127.0.0.1:27017/inklukids` (or your DB name) in `server/.env`.
+
 ### 1) Clone
 ```bash
 git clone https://github.com/denyseishimirwe/inklukids.git
 cd inklukids
 ```
+Git creates a folder named `inklukids` by default. If you cloned into another directory name, `cd` into that folder instead.
 
 ### 2) Frontend
 ```bash
 npm install
 npm start
 ```
-Frontend runs at `http://localhost:3000`.
+Frontend runs at `http://localhost:3000`. You do **not** need `REACT_APP_API_BASE` for local dev: the app defaults to `http://localhost:5000` for API calls.
 
 ### 3) Backend (`server/`)
 ```bash
@@ -124,12 +127,13 @@ macOS/Linux:
 cp .env.example .env
 ```
 
-Set required values in `server/.env`:
+Set required values in `server/.env` (copy from `server/.env.example` and replace placeholders). The API validates **`JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` to at least 16 characters each**—use long random strings, not short passwords.
+
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
-JWT_ACCESS_SECRET=your_long_random_secret
-JWT_REFRESH_SECRET=your_long_random_secret
+JWT_ACCESS_SECRET=your_long_random_secret_at_least_16_chars
+JWT_REFRESH_SECRET=your_other_long_random_secret_at_least_16_chars
 ACCESS_TOKEN_TTL=15m
 REFRESH_TOKEN_TTL_DAYS=30
 CLIENT_ORIGIN=http://localhost:3000
@@ -167,7 +171,7 @@ Set environment variables:
 - **Output directory:** `build`
 
 Set environment variable:
-- `REACT_APP_API_BASE=https://inklukids.onrender.com`
+- `REACT_APP_API_BASE=https://inklukids.onrender.com` (no trailing slash; required so the deployed site talks to Render, not only `localhost`)
 
 ---
 
