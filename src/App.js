@@ -1112,8 +1112,8 @@ function TeacherHome({ user, accessToken, onOpenTraining }) {
           <div className="card-title">Student Highlights</div>
           {[
             { name: 'Student A', note: 'Great week — completed 4 activities', t: 'green' },
-            { name: 'Blaise M.', note: 'Needs check-in — missed 2 sessions', t: 'amber' },
-            { name: 'Clarisse N.', note: 'Excellent participation today', t: 'green' },
+            { name: 'Student B', note: 'Needs check-in — missed 2 sessions', t: 'amber' },
+            { name: 'Student C', note: 'Excellent participation today', t: 'green' },
           ].map((s, i) => (
             <div className="list-item" key={i}>
               <div className="li-av">{s.name.charAt(0)}</div>
