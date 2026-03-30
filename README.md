@@ -6,7 +6,7 @@ InkluKids connects teachers, parents, children, and school administrators in one
 
 ---
 
-## Live System (Facilitator Access)
+## Live System 
 
 - **Frontend (Vercel):** [https://inklukids.vercel.app](https://inklukids.vercel.app)
 - **Backend API (Render health):** [https://inklukids.onrender.com/health](https://inklukids.onrender.com/health)
@@ -173,15 +173,15 @@ Set environment variable:
 
 ## Summative Submission Checklist
 
-- [ ] Public GitHub repository
-- [ ] Public deployed frontend URL
+- [x] Public GitHub repository
+- [x] Public deployed frontend URL
 - [ ] 5–10 minute demo video link
 - [ ] SRS document link
 - [ ] Google Doc named `personNames_[Summative]_[MMDDYYYY]`
 - [ ] All shared links are accessible to grader
 
 ### Submission Links
-- **GitHub Repository:** `<PASTE_GITHUB_URL>`
+- **GitHub Repository:** [https://github.com/denyseishimirwe/inklukids](https://github.com/denyseishimirwe/inklukids)
 - **Frontend URL:** `https://inklukids.vercel.app`
 - **Backend Health URL:** `https://inklukids.onrender.com/health`
 - **SRS Document:** `<PASTE_SRS_LINK>`
