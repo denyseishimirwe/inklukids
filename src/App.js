@@ -2032,7 +2032,7 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'training', label: 'Training', icon: 'graduation' },
-    { id: 'activities', label: 'Activities', icon: 'calendar' },
+    { id: 'activities', label: 'Home Activities', icon: 'calendar' },
     { id: 'progress', label: 'Progress Tracking', icon: 'chart' },
     { id: 'assigned', label: 'Assigned', icon: 'check' },
     { id: 'resources', label: 'Resource Library', icon: 'book' },
@@ -2136,7 +2136,7 @@ function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSel
         <ChildPicker linkedChildren={linkedChildren} selectedChildId={selectedChildId} setSelectedChildId={setSelectedChildId} />
       </div>
       <div className="quick-actions">
-        <button className="btn-sm" onClick={onGoActivities}><Icon name="calendar" size={14} /> Activities</button>
+        <button className="btn-sm" onClick={onGoActivities}><Icon name="calendar" size={14} /> Home Activities</button>
         <button className="btn-sm" onClick={onGoProgress}><Icon name="chart" size={14} /> Progress</button>
         <button className="btn-sm" onClick={onGoResources}><Icon name="book" size={14} /> Resources</button>
         <button className="btn-sm" onClick={onGoMessages}><Icon name="message" size={14} /> Messages</button>
@@ -2149,7 +2149,10 @@ function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSel
       </div>
       <div className="two-col">
         <div className="card">
-          <div className="card-title">Today's Activities</div>
+          <div className="card-title">Suggested home activities</div>
+          <div className="li-sub" style={{ marginTop: 6 }}>
+            These are activities you can do <strong>with your child</strong> at home (not the child portal).
+          </div>
           {[
             { title: 'Matching Colors Game', time: '10 min', done: true },
             { title: 'Story Time with Pictures', time: '15 min', done: true },
