@@ -1,238 +1,196 @@
 # InkluKids
 
-React (Create React App) frontend plus a **Node/Express + MongoDB** API in **`server/`**. The old **`backend/`** folder is unused; see `backend/README.md`.
+**A web platform supporting autism inclusion in Rwandan schools.**
 
-## System description (for summative demo)
-
-**InkluKids** is a web-based support and learning platform that connects **teachers, parents, children, and admins**. It provides authentication, role-based access, and features for tracking learning activities/progress, assignments, announcements, messages, and support requests.
-
-## Problem statement
-
-Many learning environments (especially where individualized support is needed) struggle with:
-
-- fragmented communication between school and home
-- difficulty tracking progress over time
-- inconsistent access to assignments/activities and support resources
-
-## Why it’s a problem
-
-When information is scattered across chats, paper notes, and different apps, it becomes hard to coordinate care/learning plans, measure progress, and respond quickly to support needs.
-
-## Proposed solution
-
-Provide a single web app with:
-
-- role-based login (teacher/parent/child/admin)
-- centralized activities and progress tracking
-- assignments and training tasks management
-- announcements and messaging
-- support request workflow
-
-## Run locally
-
-### Prerequisites
-
-- Node.js (LTS recommended) + npm
-- MongoDB running locally **or** a MongoDB Atlas connection string
-- (Optional) Docker Desktop if you want to run local MongoDB via `docker compose`
-
-### 1) Start MongoDB
-
-Pick one:
-
-- **Docker (recommended for local)**:
-  - Start Docker Desktop
-  - From the repo root:
-    - `docker compose up -d`
-- **Local MongoDB service**:
-  - Ensure MongoDB is running on `mongodb://127.0.0.1:27017`
-
-### 2) Configure and run the API
-
-From the repo root:
-
-1. Copy env file:
-   - Copy `server/.env.example` → `server/.env`
-2. Set required variables in `server/.env`:
-   - `MONGO_URI`
-   - `JWT_ACCESS_SECRET` (16+ chars; 32+ recommended)
-   - `JWT_REFRESH_SECRET` (16+ chars; 32+ recommended)
-   - `CLIENT_ORIGIN` (usually `http://localhost:3000`)
-3. Install + start:
-   - `cd server`
-   - `npm install`
-   - `npm start`
-
-API defaults to `http://localhost:5000`. Health check: `GET /health`.
-
-### 3) Configure and run the frontend
-
-From the repo root:
-
-1. Install:
-   - `npm install`
-2. Start:
-   - `npm start`
-
-Frontend defaults to `http://localhost:3000`.
-
-### Common local dev values
-
-- **Frontend → API base URL**: set `REACT_APP_API_BASE` (optional). If not set, the frontend uses `http://localhost:5000` (see `src/api/client.js`).
-- **CORS**: `CLIENT_ORIGIN` supports a comma-separated list (useful if you have multiple allowed origins).
-
-## Production checklist
-
-- Set **`CLIENT_ORIGIN`** on the server to your **exact** live site URL (e.g. `https://myapp.vercel.app`).
-- Build the SPA with **`REACT_APP_API_BASE`** pointing at your **public API** URL.
-- If the SPA and API are on **different domains**, set **`REFRESH_COOKIE_CROSS_SITE=true`** on the server and serve the API over **HTTPS** (refresh cookies use `SameSite=None; Secure`).
-- Never commit real `.env` files or JWT secrets.
-
-## Deployment (example: Vercel + Render)
-
-Typical setup:
-
-- **Frontend (React SPA)**: Vercel (or Netlify)
-- **API (Node/Express)**: Render (or Railway/Fly.io)
-- **MongoDB**: MongoDB Atlas (recommended)
-
-### Deploy the API (`server/`)
-
-Create a new web service pointing at the `server/` folder.
-
-- **Build command**: `npm install`
-- **Start command**: `npm start`
-
-Set these environment variables on your host:
-
-- **`MONGO_URI`**: your Mongo connection string
-- **`JWT_ACCESS_SECRET`**: 16+ chars (32+ recommended)
-- **`JWT_REFRESH_SECRET`**: 16+ chars (32+ recommended)
-- **`CLIENT_ORIGIN`**: comma-separated allowed browser origins (your live frontend URL(s))
-- **`REFRESH_COOKIE_CROSS_SITE`**: `true` if frontend + API are on different site names (requires HTTPS)
-- **`ACCESS_TOKEN_TTL`** (optional): e.g. `15m`
-- **`REFRESH_TOKEN_TTL_DAYS`** (optional): e.g. `30`
-
-Verify the API is up by visiting `/health` on the deployed API.
-
-### Deploy the frontend (repo root)
-
-Create a new frontend project pointing at the repo root.
-
-Set this environment variable **at build time**:
-
-- **`REACT_APP_API_BASE`**: your deployed API base URL (e.g. `https://your-api.onrender.com`)
-
-Then deploy. The browser will call the API at `REACT_APP_API_BASE` and include cookies (`credentials: 'include'`).
-
-## Summative submission checklist (video + links)
-
-In your **5–10 minute** self-recorded demo video, cover:
-
-- **The description of the system**
-- **The problem statement**
-- **Why it is a problem**
-- **The proposed solution**
-- **The demo** (show key user flows and pages)
-- Confirm the prototype reflects the **SRS requirements**
-- Confirm the prototype captures the **actors and processes** in your system design
-
-### Submission instructions
-
-1. Create a Google Doc named: `personNames_[Summative]_[MMDDYYYY]`
-2. Paste into the Google Doc:
-   - Link to your demo video
-   - Link to your public GitHub repo
-   - Link to your SRS document
-   - Link to your deployed product (public URL)
-3. Ensure:
-   - Repo is **public**
-   - All links are accessible and working (doc sharing enabled)
-
-### Project links (fill these before submitting)
-
-- **Deployed frontend (Vercel)**: `<PASTE_VERCEL_URL_HERE>`
-- **Deployed API (Render)**: `<PASTE_RENDER_URL_HERE>`
-- **GitHub repo**: `<PASTE_GITHUB_URL_HERE>`
-- **SRS document**: `<PASTE_SRS_URL_HERE>`
-
-## Automated QA (build + tests)
-
-From the repo root:
-
-```bash
-npm run qa
-```
+InkluKids connects teachers, parents, children, and school administrators in one system for coordinated support, communication, and progress tracking.
 
 ---
 
-# Getting Started with Create React App
+## Live System (Facilitator Access)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- **Frontend (Vercel):** [https://inklukids.vercel.app](https://inklukids.vercel.app)
+- **Backend API (Render health):** [https://inklukids.onrender.com/health](https://inklukids.onrender.com/health)
 
-## Available Scripts
+> Note: Render free instances may sleep. First request can take a short time to wake up.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## System Overview
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Problem Statement
+Communication and learning support for autistic children is often fragmented between home and school. This makes it difficult to monitor progress, align interventions, and respond quickly to learner needs.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Proposed Solution
+InkluKids provides one role-based platform where teachers, parents, children, and administrators can collaborate through assignments, progress records, training, and messaging.
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## User Roles and Core Functions
 
-### `npm run build`
+- **Teacher**
+  - Complete training modules
+  - Monitor learners
+  - Assign activities
+  - Message parents
+- **Parent**
+  - Link child accounts
+  - View assigned activities
+  - Track child progress
+  - Communicate with teachers
+- **Child**
+  - Access assigned activities
+  - Complete activities
+  - Earn progress points
+- **Admin**
+  - Manage users
+  - Monitor training completion
+  - View system-level reports
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Technology Stack
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+| Layer | Technology |
+|---|---|
+| Frontend | React (Create React App) |
+| Styling | CSS |
+| Backend | Node.js + Express |
+| Database | MongoDB Atlas + Mongoose |
+| Authentication | JWT + bcryptjs + refresh token cookies |
+| Deployment | Vercel (frontend) + Render (API) |
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Repository Structure
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```text
+inklukids3/
+├── src/
+│   ├── App.js
+│   ├── App.css
+│   └── api/client.js
+├── server/
+│   ├── src/
+│   │   ├── server.js
+│   │   ├── app.js
+│   │   ├── config/env.js
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   └── routes/
+│   ├── package.json
+│   └── .env.example
+├── docker-compose.yml
+└── README.md
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+> The `backend/` folder is legacy and not used by the deployed solution.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## Local Setup Instructions
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Prerequisites
+- Node.js 18+ and npm
+- MongoDB Atlas (recommended) or local MongoDB
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 1) Clone
+```bash
+git clone https://github.com/denyseishimirwe/inklukids.git
+cd inklukids
+```
 
-### Code Splitting
+### 2) Frontend
+```bash
+npm install
+npm start
+```
+Frontend runs at `http://localhost:3000`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 3) Backend (`server/`)
+```bash
+cd server
+npm install
+```
 
-### Analyzing the Bundle Size
+Create local env file from template:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Windows PowerShell:
+```powershell
+Copy-Item .env.example .env
+```
 
-### Making a Progressive Web App
+macOS/Linux:
+```bash
+cp .env.example .env
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Set required values in `server/.env`:
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_ACCESS_SECRET=your_long_random_secret
+JWT_REFRESH_SECRET=your_long_random_secret
+ACCESS_TOKEN_TTL=15m
+REFRESH_TOKEN_TTL_DAYS=30
+CLIENT_ORIGIN=http://localhost:3000
+REFRESH_COOKIE_CROSS_SITE=false
+```
 
-### Advanced Configuration
+Start backend:
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+API runs at `http://localhost:5000` (`GET /health` for status).
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Deployment Configuration (Vercel + Render + Atlas)
 
-### `npm run build` fails to minify
+### Backend (Render)
+- **Root directory:** `server`
+- **Build command:** `npm install`
+- **Start command:** `npm start`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Set environment variables:
+- `MONGO_URI`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `CLIENT_ORIGIN=https://inklukids.vercel.app`
+- `REFRESH_COOKIE_CROSS_SITE=true`
+- `ACCESS_TOKEN_TTL` (optional)
+- `REFRESH_TOKEN_TTL_DAYS` (optional)
+
+### Frontend (Vercel)
+- **Root directory:** repository root
+- **Build command:** `npm run build`
+- **Output directory:** `build`
+
+Set environment variable:
+- `REACT_APP_API_BASE=https://inklukids.onrender.com`
+
+---
+
+## Summative Submission Checklist
+
+- [ ] Public GitHub repository
+- [ ] Public deployed frontend URL
+- [ ] 5–10 minute demo video link
+- [ ] SRS document link
+- [ ] Google Doc named `personNames_[Summative]_[MMDDYYYY]`
+- [ ] All shared links are accessible to grader
+
+### Submission Links
+- **GitHub Repository:** `<PASTE_GITHUB_URL>`
+- **Frontend URL:** `https://inklukids.vercel.app`
+- **Backend Health URL:** `https://inklukids.onrender.com/health`
+- **SRS Document:** `<PASTE_SRS_LINK>`
+- **Demo Video:** `<PASTE_VIDEO_LINK>`
+
+---
+
+## Author
+
+**Denyse Ishimirwe**  
+African Leadership University  
+Software Engineering Summative Project
