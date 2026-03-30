@@ -79,12 +79,7 @@ const LI = ({ d, size = 22 }) => (
   </svg>
 );
 
-const SEED_USERS = [
-  { id: 1, name: 'Uwase Diane', email: 'uwase@gmail.com', password: 'pass123', role: 'teacher', status: 'Active' },
-  { id: 2, name: 'Habimana Jean', email: 'habimana@gmail.com', password: 'pass123', role: 'parent', status: 'Active' },
-  { id: 3, name: 'School Admin', email: 'admin@inklukids.rw', password: 'admin123', role: 'admin', status: 'Active' },
-  { id: 4, name: 'Amani', email: 'amani@child.rw', password: 'child123', role: 'child', status: 'Active' },
-];
+const SEED_USERS = [];
 
 function App() {
   const [page, setPage] = useState('home');
@@ -304,7 +299,7 @@ function LandingPage({ go }) {
               <span className="ldp-logo-sm">InkluKids</span>
               <div className="ldp-header-right">
                 <div className="ldp-dot active" />
-                <span className="ldp-user-name">Ms. Uwase</span>
+                <span className="ldp-user-name">Teacher</span>
               </div>
             </div>
             <div className="ldp-module-banner">
@@ -328,7 +323,7 @@ function LandingPage({ go }) {
               <div className="ldp-divider" />
               <div className="ldp-label">Students</div>
               <div className="ldp-students">
-                {[['A', 'Amani', 'ok'], ['B', 'Blaise', 'warn'], ['C', 'Clarisse', 'ok'], ['D', 'David', 'ok']].map(([initial, name, status]) => (
+                {[['A', 'Student A', 'ok'], ['B', 'Student B', 'warn'], ['C', 'Student C', 'ok'], ['D', 'Student D', 'ok']].map(([initial, name, status]) => (
                   <div className="ldp-student" key={name}>
                     <div className="ldp-av">{initial}</div>
                     <span className="ldp-sname">{name}</span>
@@ -403,8 +398,8 @@ function LandingPage({ go }) {
         </div>
         <div className="lp-why-right">
           {[
-            { q: 'InkluKids gave me a clear structure for teaching students with autism. The training is practical and easy to follow.', who: 'Primary school teacher', loc: 'Kigali', initial: 'U' },
-            { q: 'I finally understand how to support my son at home. The activities fit perfectly into our daily routine.', who: 'Parent', loc: 'Musanze', initial: 'H' },
+            { q: 'InkluKids gives me a clear structure for inclusive learning support. The tools are practical and easy to follow.', who: 'Primary school teacher', loc: 'Rwanda', initial: 'T' },
+            { q: 'I can support my child at home and follow progress more consistently.', who: 'Parent', loc: 'Rwanda', initial: 'P' },
           ].map((t, i) => (
             <div className="lp-testimonial" key={i}>
               <span className="lp-quote-mark">&ldquo;</span>
@@ -413,7 +408,7 @@ function LandingPage({ go }) {
                 <div className="lp-t-av">{t.initial}</div>
                 <div>
                   <strong>{t.who}</strong>
-                  <span>{t.loc}, Rwanda</span>
+                  <span>{t.loc}</span>
                 </div>
               </footer>
             </div>
@@ -471,13 +466,13 @@ function LandingPage({ go }) {
 function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
   const isLogin = mode === 'login';
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', role: 'teacher' });
-  const [children, setChildren] = useState([{ name: '', age: '', diagnosis: '', school: '', notes: '' }]);
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', role: 'teacher', gradeLevel: '', teachesGrades: '' });
+  const [children, setChildren] = useState([{ name: '', age: '', grade: '', diagnosis: '', school: '', notes: '' }]);
   const [error, setError] = useState('');
 
   const set = (k, v) => { setForm(p => ({ ...p, [k]: v })); setError(''); };
   const setChild = (i, k, v) => setChildren(p => p.map((c, idx) => idx === i ? { ...c, [k]: v } : c));
-  const addChild = () => setChildren(p => [...p, { name: '', age: '', diagnosis: '', school: '', notes: '' }]);
+  const addChild = () => setChildren(p => [...p, { name: '', age: '', grade: '', diagnosis: '', school: '', notes: '' }]);
   const removeChild = (i) => setChildren(p => p.filter((_, idx) => idx !== i));
 
   const normalizedEmail = (form.email || '').trim().toLowerCase();
@@ -495,7 +490,16 @@ function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
     else {
       apiFetch('/api/auth/register', {
         method: 'POST',
-        body: { name: normalizedName, email: normalizedEmail, password: normalizedPassword, role: form.role },
+        body: {
+          name: normalizedName,
+          email: normalizedEmail,
+          password: normalizedPassword,
+          role: form.role,
+          gradeLevel: form.role === 'child' ? (form.gradeLevel || '').trim() : undefined,
+          teachesGrades: form.role === 'teacher'
+            ? (String(form.teachesGrades || '').split(',').map((s) => s.trim()).filter(Boolean))
+            : undefined,
+        },
       })
         .then((data) => {
           setAccessToken?.(data.accessToken);
@@ -547,13 +551,9 @@ function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
             <button className="auth-submit" onClick={handleLogin}>Sign In</button>
             <p className="auth-switch">No account? <span onClick={() => go('register')}>Create one</span></p>
             <div className="auth-demo">
-              <div className="auth-demo-title">Demo accounts</div>
-              <div>Teacher: uwase@gmail.com / pass123</div>
-              <div>Parent: habimana@gmail.com / pass123</div>
-              <div>Child: amani@child.rw / child123</div>
-              <div>Admin: admin@inklukids.rw / admin123</div>
+              <div className="auth-demo-title">Tip</div>
               <div style={{ marginTop: 8, lineHeight: 1.6 }}>
-                Tip: you can type the email in any case (e.g. UWASE@GMAIL.COM) and it will still work.
+                You can type the email in any case (e.g. NAME@EMAIL.COM) and it will still work.
               </div>
             </div>
           </>
@@ -573,6 +573,18 @@ function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
                 ))}
               </div>
             </div>
+            {form.role === 'child' && (
+              <div className="auth-field">
+                <label>Grade / Class level</label>
+                <input value={form.gradeLevel} onChange={(e) => set('gradeLevel', e.target.value)} placeholder="e.g. P3, Grade 4, S1" />
+              </div>
+            )}
+            {form.role === 'teacher' && (
+              <div className="auth-field">
+                <label>Grades you teach</label>
+                <input value={form.teachesGrades} onChange={(e) => set('teachesGrades', e.target.value)} placeholder="e.g. P1, P2, P3 (comma-separated)" />
+              </div>
+            )}
             <div className="auth-field"><label>Password</label><input type="password" placeholder="At least 6 characters" value={form.password} onChange={e => set('password', e.target.value)} /></div>
             <div className="auth-field"><label>Confirm Password</label><input type="password" placeholder="Repeat your password" value={form.confirm} onChange={e => set('confirm', e.target.value)} onKeyDown={e => e.key === 'Enter' && handleStep1()} /></div>
             {error && <div className="auth-error">{error}</div>}
@@ -597,9 +609,10 @@ function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
                   {children.length > 1 && <button className="auth-child-remove" onClick={() => removeChild(i)}>Remove</button>}
                 </div>
                 <div className="auth-field-row">
-                  <div className="auth-field"><label>Name *</label><input type="text" placeholder="e.g. Amani" value={child.name} onChange={e => setChild(i, 'name', e.target.value)} /></div>
+                  <div className="auth-field"><label>Name *</label><input type="text" placeholder="e.g. Child name" value={child.name} onChange={e => setChild(i, 'name', e.target.value)} /></div>
                   <div className="auth-field"><label>Age</label><input type="number" placeholder="e.g. 7" min="2" max="18" value={child.age} onChange={e => setChild(i, 'age', e.target.value)} /></div>
                 </div>
+                <div className="auth-field"><label>Grade / Class level</label><input type="text" placeholder="e.g. P3, Grade 4" value={child.grade} onChange={e => setChild(i, 'grade', e.target.value)} /></div>
                 <div className="auth-field"><label>School</label><input type="text" placeholder="e.g. Kigali Primary School" value={child.school} onChange={e => setChild(i, 'school', e.target.value)} /></div>
                 <div className="auth-field">
                   <label>Support needs</label>
@@ -641,8 +654,8 @@ function AuthPage({ mode, go, users, onAuth, setAccessToken }) {
           <div className="ar-divider" />
           <div className="ar-quotes">
             {[
-              { q: 'InkluKids gave me a clear structure for teaching students with autism. The training is practical and easy to follow.', who: 'Teacher · Kigali' },
-              { q: 'I finally understand how to support my son at home. The activities are perfect for him.', who: 'Parent · Musanze' },
+              { q: 'InkluKids gives me a clear structure for inclusive learning support. The tools are practical and easy to follow.', who: 'Teacher' },
+              { q: 'I can now support my child at home and keep track of progress more consistently.', who: 'Parent' },
             ].map((t, i) => (
               <div key={i} className="ar-quote">
                 <p>"{t.q}"</p>
@@ -1098,7 +1111,7 @@ function TeacherHome({ user, accessToken, onOpenTraining }) {
         <div className="card">
           <div className="card-title">Student Highlights</div>
           {[
-            { name: 'Amani K.', note: 'Great week — completed 4 activities', t: 'green' },
+            { name: 'Student A', note: 'Great week — completed 4 activities', t: 'green' },
             { name: 'Blaise M.', note: 'Needs check-in — missed 2 sessions', t: 'amber' },
             { name: 'Clarisse N.', note: 'Excellent participation today', t: 'green' },
           ].map((s, i) => (
@@ -1461,10 +1474,10 @@ function StudentsTab() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const students = [
-    { name: 'Amani Kagabo', age: 8, activities: 12, attendance: '90%', status: 'On Track', help: 'Taking turns during group activities' },
-    { name: 'Blaise Mugisha', age: 7, activities: 7, attendance: '70%', status: 'Needs Support', help: 'Following visual schedule and staying on task' },
-    { name: 'Clarisse Nziza', age: 9, activities: 15, attendance: '95%', status: 'On Track', help: 'Asking for help using words or picture cards' },
-    { name: 'Dieudonne Habu', age: 8, activities: 9, attendance: '80%', status: 'On Track', help: 'Managing noise and transitions between tasks' },
+    { name: 'Student A', age: 8, activities: 12, attendance: '90%', status: 'On Track', help: 'Taking turns during group activities' },
+    { name: 'Student B', age: 7, activities: 7, attendance: '70%', status: 'Needs Support', help: 'Following visual schedule and staying on task' },
+    { name: 'Student C', age: 9, activities: 15, attendance: '95%', status: 'On Track', help: 'Asking for help using words or picture cards' },
+    { name: 'Student D', age: 8, activities: 9, attendance: '80%', status: 'On Track', help: 'Managing noise and transitions between tasks' },
   ];
 
   const visible = students.filter(s => {
@@ -1650,13 +1663,13 @@ function MessagesTab({ user, accessToken, preferredUserId }) {
   const [newPersonQuery, setNewPersonQuery] = useState('');
   const [newPersonRole, setNewPersonRole] = useState('all');
   const [fallback, setFallback] = useState({
-    'Parent (Amani)': [
-      { from: 'Teacher', text: 'Amani had a great session - engaged well with the visual schedule.', time: '9:15 AM', mine: false },
+    'Parent': [
+      { from: 'Teacher', text: 'Your child had a great session and engaged well with the visual schedule.', time: '9:15 AM', mine: false },
       { from: 'You', text: 'Thank you! Could you share what visuals you used?', time: '6:30 PM', mine: true },
       { from: 'Teacher', text: "Of course! I'll send over the picture cards. He loved the colour-coded routine board.", time: '7:02 PM', mine: false },
     ],
   });
-  const [activeFallbackName, setActiveFallbackName] = useState('Parent (Amani)');
+  const [activeFallbackName, setActiveFallbackName] = useState('Parent');
   const [usingFallback, setUsingFallback] = useState(false);
   const myLabel = `${(user?.role || 'user').charAt(0).toUpperCase() + (user?.role || 'user').slice(1)} ${user?.name || ''}`.trim();
   const roleLabel = (role) => `${(role || 'user').charAt(0).toUpperCase() + (role || 'user').slice(1)}`;
@@ -2014,6 +2027,8 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
   const [tab, setTab] = useState('home');
   const [activityOpenTitle, setActivityOpenTitle] = useState(null);
   const [messageOpenUserId, setMessageOpenUserId] = useState('');
+  const [linkedChildren, setLinkedChildren] = useState([]);
+  const [selectedChildId, setSelectedChildId] = useState('');
   const nav = [
     { id: 'home', label: 'Dashboard', icon: 'home' },
     { id: 'training', label: 'Training', icon: 'graduation' },
@@ -2030,12 +2045,36 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
     if (notifProps.notifNav.userId) setMessageOpenUserId(notifProps.notifNav.userId);
   }, [notifProps?.notifNav]);
 
+  const loadLinkedChildren = useCallback(() => {
+    if (!accessToken) return;
+    apiFetch('/api/users/me/linked-children', { accessToken })
+      .then((d) => {
+        const list = d.children || [];
+        setLinkedChildren(list);
+        if (!selectedChildId && list.length > 0) setSelectedChildId(list[0].id);
+        if (selectedChildId && !list.some((c) => c.id === selectedChildId)) {
+          setSelectedChildId(list[0]?.id || '');
+        }
+      })
+      .catch(() => {
+        setLinkedChildren([]);
+        setSelectedChildId('');
+      });
+  }, [accessToken, selectedChildId]);
+
+  useEffect(() => { loadLinkedChildren(); }, [loadLinkedChildren]);
+
+  const selectedChild = linkedChildren.find((c) => c.id === selectedChildId) || null;
+
   return (
     <Shell user={user} onLogout={onLogout} {...notifProps} navItems={nav} activeTab={tab} setActiveTab={setTab}>
       {tab === 'home' && (
         <ParentHome
           user={user}
           accessToken={accessToken}
+          linkedChildren={linkedChildren}
+          selectedChildId={selectedChildId}
+          setSelectedChildId={setSelectedChildId}
           onGoActivities={() => setTab('activities')}
           onGoProgress={() => setTab('progress')}
           onGoResources={() => setTab('resources')}
@@ -2045,7 +2084,15 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
       )}
       {tab === 'training' && <ParentTrainingTab accessToken={accessToken} />}
       {tab === 'activities' && <ActivitiesTab openActivityTitle={activityOpenTitle} onActivityOpened={() => setActivityOpenTitle(null)} />}
-      {tab === 'progress' && <ProgressTab />}
+      {tab === 'progress' && (
+        <ProgressTab
+          mode="parent"
+          linkedChildren={linkedChildren}
+          selectedChildId={selectedChildId}
+          setSelectedChildId={setSelectedChildId}
+          childProgress={selectedChild?.progress || null}
+        />
+      )}
       {tab === 'assigned' && <ParentAssignedTab accessToken={accessToken} />}
       {tab === 'resources' && <ResourcesTab />}
       {tab === 'messages' && <MessagesTab user={user} accessToken={accessToken} preferredUserId={messageOpenUserId} />}
@@ -2054,12 +2101,39 @@ function ParentDashboard({ user, onLogout, accessToken, ...notifProps }) {
   );
 }
 
-function ParentHome({ user, accessToken, onGoActivities, onGoProgress, onGoResources, onGoMessages, onOpenActivity }) {
+function ChildPicker({ linkedChildren, selectedChildId, setSelectedChildId, label = 'Child' }) {
+  if (!linkedChildren || linkedChildren.length === 0) return null;
+  if (linkedChildren.length === 1) return (
+    <div className="li-sub" style={{ marginTop: 6 }}>
+      {label}: <strong>{linkedChildren[0].name}</strong>
+    </div>
+  );
+  return (
+    <div className="auth-field" style={{ marginTop: 10, maxWidth: 360 }}>
+      <label>{label}</label>
+      <select value={selectedChildId} onChange={(e) => setSelectedChildId?.(e.target.value)}>
+        {linkedChildren.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ParentHome({ user, accessToken, linkedChildren, selectedChildId, setSelectedChildId, onGoActivities, onGoProgress, onGoResources, onGoMessages, onOpenActivity }) {
+  const selectedChild = (linkedChildren || []).find((c) => c.id === selectedChildId) || linkedChildren?.[0] || null;
   return (
     <div className="page">
       <div className="page-head">
         <h1>Hello, {user?.name?.split(' ')[0]}</h1>
-        <p>Here is your child's latest update.</p>
+        {(!linkedChildren || linkedChildren.length === 0) ? (
+          <p>
+            Link your child account in <strong>Assigned</strong> to see assignments and progress.
+          </p>
+        ) : (
+          <p>Viewing updates for <strong>{selectedChild?.name || 'your child'}</strong>.</p>
+        )}
+        <ChildPicker linkedChildren={linkedChildren} selectedChildId={selectedChildId} setSelectedChildId={setSelectedChildId} />
       </div>
       <div className="quick-actions">
         <button className="btn-sm" onClick={onGoActivities}><Icon name="calendar" size={14} /> Activities</button>
@@ -2099,10 +2173,10 @@ function ParentHome({ user, accessToken, onGoActivities, onGoProgress, onGoResou
             <button className="btn-sm" onClick={onGoMessages}>Message</button>
           </div>
           <div className="teacher-note">
-            <div className="tn-av">U</div>
+            <div className="tn-av">T</div>
             <div>
-              <div className="tn-name">Ms. Uwase</div>
-              <p className="tn-text">"Your child had a wonderful week. Engagement with visual activities has improved significantly."</p>
+              <div className="tn-name">Teacher</div>
+              <p className="tn-text">"Your child is making steady progress. Keep practicing the assigned visual activities at home."</p>
               <div className="tn-time">Yesterday at 4:30 PM</div>
             </div>
           </div>
@@ -2210,6 +2284,7 @@ function ParentAssignedTab({ accessToken }) {
   const [childPassword, setChildPassword] = useState('');
   const [toast, setToast] = useState('');
   const [assignments, setAssignments] = useState([]);
+  const [linkedChildren, setLinkedChildren] = useState([]);
 
   const showToast = useCallback((t) => {
     setToast(t);
@@ -2224,7 +2299,15 @@ function ParentAssignedTab({ accessToken }) {
       .catch((e) => showToast(e.message || 'Failed to load assignments'));
   }, [accessToken, showToast]);
 
+  const loadLinked = useCallback(() => {
+    if (!accessToken) return;
+    apiFetch('/api/users/me/linked-children', { accessToken })
+      .then((d) => setLinkedChildren(d.children || []))
+      .catch(() => setLinkedChildren([]));
+  }, [accessToken]);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadLinked(); }, [loadLinked]);
 
   const link = async () => {
     try {
@@ -2233,8 +2316,9 @@ function ParentAssignedTab({ accessToken }) {
       setChildPassword('');
       showToast('Child linked');
       load();
+      loadLinked();
     } catch (e) {
-      showToast(e.message || 'Link failed');
+      showToast(e?.data?.message || e.message || 'Link failed');
     }
   };
 
@@ -2245,7 +2329,7 @@ function ParentAssignedTab({ accessToken }) {
       <div className="card">
         <div className="card-title">Link your child account</div>
         <div className="li-sub" style={{ marginBottom: 12 }}>
-          Enter your child’s login once to link. After that, assignments will appear here.
+          This links an existing <strong>Child</strong> account (child email + password). If you only added child info during parent registration, first create a child account from <strong>Create account → Child</strong>, then come back here to link it.
         </div>
         <div className="two-col" style={{ gap: 12 }}>
           <div className="auth-field"><label>Child email</label><input value={childEmail} onChange={(e) => setChildEmail(e.target.value)} placeholder="child@example.com" /></div>
@@ -2254,6 +2338,19 @@ function ParentAssignedTab({ accessToken }) {
         <div className="lesson-actions">
           <button className="btn-primary" onClick={link} disabled={!childEmail.trim() || !childPassword.trim()}><Icon name="check" size={16} /> Link child</button>
         </div>
+        {linkedChildren.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div className="card-title" style={{ fontSize: 14 }}>Linked children</div>
+            {linkedChildren.map((c) => (
+              <div className="list-item" key={c.id}>
+                <div className="li-body">
+                  <div className="li-title">{c.name}{c.gradeLevel ? <span className="li-sub"> · {c.gradeLevel}</span> : null}</div>
+                  <div className="li-sub">{c.email}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
@@ -2330,7 +2427,33 @@ function ActivitiesTab({ openActivityTitle, onActivityOpened }) {
   );
 }
 
-function ProgressTab() {
+function ProgressTab({ mode = 'child', linkedChildren, selectedChildId, setSelectedChildId, childProgress }) {
+  if (mode === 'parent') {
+    const points = childProgress?.points || 0;
+    const completed = childProgress?.completedActivityIds?.length || 0;
+    const last = childProgress?.lastCompletedAt ? new Date(childProgress.lastCompletedAt).toLocaleString() : '—';
+    return (
+      <div className="page">
+        <div className="page-head">
+          <h1>Progress Tracking</h1>
+          <p>Switch between children to view their progress.</p>
+          <ChildPicker linkedChildren={linkedChildren} selectedChildId={selectedChildId} setSelectedChildId={setSelectedChildId} label="Select child" />
+          {(!linkedChildren || linkedChildren.length === 0) && (
+            <div className="li-sub" style={{ marginTop: 10 }}>
+              No linked child accounts yet. Go to <strong>Assigned</strong> and link your child’s login.
+            </div>
+          )}
+        </div>
+        <div className="stats-row">
+          <StatCard label="Total points" value={String(points)} icon="chart" color="var(--blue-tint)" />
+          <StatCard label="Activities completed" value={String(completed)} icon="check" color="var(--green-tint)" />
+          <StatCard label="Last activity" value={last} icon="calendar" color="var(--amber-tint)" />
+          <StatCard label="Overall" value={points >= 80 ? 'Excellent' : points >= 40 ? 'Good' : 'Getting started'} icon="spark" color="var(--peach-tint)" />
+        </div>
+      </div>
+    );
+  }
+
   const weeklyProgress = [
     { week: 'W1', score: 45 },
     { week: 'W2', score: 56 },
@@ -2572,7 +2695,7 @@ function ChildMiniActivity({ activity, onSuccess }) {
       <div className="card" style={{ marginTop: 12 }}>
         <div className="card-title">Mini activity: Story time</div>
         <div className="li-sub">Read the short sentence and answer:</div>
-        <div className="res-desc" style={{ marginTop: 8 }}>"Amani shared her toy with a friend."</div>
+        <div className="res-desc" style={{ marginTop: 8 }}>"A child shared a toy with a friend."</div>
         <div className="res-actions" style={{ marginTop: 10 }}>
           <button className="btn-sm" onClick={() => { setState({ ok: true }); onSuccess?.(); }}>Was that kind?</button>
           <button className="btn-sm" onClick={() => setState({ ok: false })}>Was that unkind?</button>
@@ -3068,10 +3191,10 @@ function AdminOverview({ user, accessToken }) {
       <div className="card">
         <div className="card-title">Training Completion by Teacher</div>
         {[
-          { name: 'Uwase Diane', done: 6, total: 6 },
-          { name: 'Nkurunziza Pierre', done: 4, total: 6 },
-          { name: 'Mutesi Grace', done: 3, total: 6 },
-          { name: 'Bizimana Eric', done: 1, total: 6 },
+          { name: 'Teacher A', done: 6, total: 6 },
+          { name: 'Teacher B', done: 4, total: 6 },
+          { name: 'Teacher C', done: 3, total: 6 },
+          { name: 'Teacher D', done: 1, total: 6 },
         ].map((t, i) => (
           <div className="list-item" key={i}>
             <div className="li-av">{t.name.charAt(0)}</div>
@@ -3207,7 +3330,7 @@ function UsersTab({ users, setUsers }) {
             </div>
           </div>
           <div className="two-col" style={{ gap: 12 }}>
-            <div className="auth-field"><label>Full Name</label><input value={draft.name} onChange={(e) => setDraft(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Uwase Diane" /></div>
+            <div className="auth-field"><label>Full Name</label><input value={draft.name} onChange={(e) => setDraft(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Teacher Name" /></div>
             <div className="auth-field"><label>Email</label><input value={draft.email} onChange={(e) => setDraft(p => ({ ...p, email: e.target.value }))} placeholder="e.g. teacher@school.rw" /></div>
           </div>
           <div className="two-col" style={{ gap: 12, marginTop: 8 }}>

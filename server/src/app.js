@@ -12,6 +12,13 @@ const { trainingAssignmentsRouter } = require('./routes/trainingAssignments');
 const { announcementsRouter } = require('./routes/announcements');
 const { supportRouter } = require('./routes/support');
 
+function parseClientOrigins(value) {
+  return String(value || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function createApp({ clientOrigin, env }) {
   const app = express();
   app.locals.env = env;
@@ -19,8 +26,14 @@ function createApp({ clientOrigin, env }) {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
+  const allowedOrigins = parseClientOrigins(clientOrigin);
   app.use(cors({
-    origin: clientOrigin,
+    origin(origin, callback) {
+      // Allow non-browser requests (no Origin header), e.g. health checks.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   }));
 

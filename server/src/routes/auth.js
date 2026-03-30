@@ -14,9 +14,12 @@ const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   role: z.enum(['teacher', 'parent', 'child', 'admin']),
+  gradeLevel: z.string().optional(),
+  teachesGrades: z.array(z.string().min(1)).optional(),
   children: z.array(z.object({
     name: z.string().min(1),
     age: z.coerce.number().optional(),
+    grade: z.string().optional(),
     school: z.string().optional(),
     diagnosis: z.string().optional(),
     notes: z.string().optional(),
@@ -55,6 +58,8 @@ function safeUser(u) {
     role: u.role,
     status: u.status,
     children: u.children || [],
+    gradeLevel: u.gradeLevel || '',
+    teachesGrades: u.teachesGrades || [],
   };
 }
 
@@ -62,7 +67,7 @@ router.post('/register', async (req, res) => {
   const parsed = RegisterSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: 'Invalid request', errors: parsed.error.flatten() });
 
-  const { name, email, password, role, children } = parsed.data;
+  const { name, email, password, role, children, gradeLevel, teachesGrades } = parsed.data;
   const normalizedEmail = email.toLowerCase().trim();
 
   const existing = await User.findOne({ email: normalizedEmail });
@@ -75,6 +80,8 @@ router.post('/register', async (req, res) => {
     passwordHash,
     role,
     children: role === 'parent' ? (children || []) : [],
+    gradeLevel: role === 'child' ? (gradeLevel || '').trim() : '',
+    teachesGrades: role === 'teacher' ? (teachesGrades || []).map((g) => String(g).trim()).filter(Boolean) : [],
   });
 
   const accessToken = createAccessToken({
